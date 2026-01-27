@@ -3,70 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeuroFit - Demo</title>
+    <title>NeuroFit - Panel Principal</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@0.263.1"></script>
     <style>
-        body { margin: 0; background-color: #4c1d95; color: white; font-family: sans-serif; }
-        .spinner { border: 4px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top: 4px solid #fff; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        body { margin: 0; font-family: sans-serif; background-color: #f3f4f6; }
+        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
     </style>
 </head>
 <body>
-    <div id="root">
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh;">
-            <h1>Cargando NeuroFit...</h1>
-            <div class="spinner"></div>
-            <p>Si esto no desaparece, el navegador tiene bloqueado JavaScript.</p>
-        </div>
-    </div>
+    <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        function App() {
-            const [isLoaded, setIsLoaded] = useState(false);
+        // Adaptamos Lucide para esta versión
+        const Brain = () => <span style={{fontSize: '2rem'}}>🧠</span>;
+        const Trophy = () => <span style={{fontSize: '1.5rem'}}>🏆</span>;
+        const Zap = () => <span style={{fontSize: '1.5rem'}}>⚡</span>;
+        const Star = () => <span style={{fontSize: '1.5rem'}}>⭐</span>;
+        const Lock = () => <span style={{fontSize: '1.2rem'}}>🔒</span>;
 
-            useEffect(() => {
-                // Forzamos un retraso para asegurar que todo se dibuje
-                const timer = setTimeout(() => setIsLoaded(true), 1000);
-                return () => clearTimeout(timer);
-            }, []);
+        const NeuroFit = () => {
+          const [screen, setScreen] = useState('loading');
+          const [user, setUser] = useState(null);
 
-            if (!isLoaded) {
-                return (
-                    <div className="min-h-screen bg-purple-900 flex items-center justify-center">
-                        <div className="text-center">
-                            <div className="text-6xl mb-4">🧠</div>
-                            <h2 className="text-2xl font-bold animate-pulse">INICIALIZANDO...</h2>
-                        </div>
-                    </div>
-                );
+          useEffect(() => {
+            const sessionData = localStorage.getItem('neurofit_session');
+            if (sessionData) {
+              setUser(JSON.parse(sessionData));
+              setScreen('home');
+            } else {
+              setTimeout(() => setScreen('auth'), 1500);
             }
+          }, []);
 
+          const handleRegister = (e) => {
+            e.preventDefault();
+            const newUser = { username: "Invitado", totalScore: 0, streak: 0, levelsPlayed: 0 };
+            localStorage.setItem('neurofit_session', JSON.stringify(newUser));
+            setUser(newUser);
+            setScreen('home');
+          };
+
+          if (screen === 'loading') {
             return (
-                <div className="min-h-screen bg-gradient-to-br from-purple-700 to-blue-900 flex items-center justify-center p-6">
-                    <div className="bg-white text-gray-800 p-10 rounded-3xl shadow-2xl max-w-md w-full text-center">
-                        <div className="text-6xl mb-4 text-purple-600">✅</div>
-                        <h1 className="text-4xl font-black mb-4">¡LO LOGRAMOS!</h1>
-                        <p className="text-lg text-gray-600 mb-8">
-                            Si estás viendo esto, el "motor" de tu app ya funciona en GitHub Pages.
-                        </p>
-                        <div className="space-y-4">
-                            <button className="w-full bg-purple-600 text-white py-3 rounded-xl font-bold">
-                                EL SISTEMA ESTÁ VIVO
-                            </button>
-                            <p className="text-xs text-gray-400">Versión 1.0 - Conexión Exitosa</p>
-                        </div>
-                    </div>
-                </div>
+              <div className="min-h-screen bg-purple-700 flex flex-col items-center justify-center text-white">
+                <div className="text-6xl animate-pulse mb-4">🧠</div>
+                <h1 className="text-2xl font-bold">Iniciando NeuroFit...</h1>
+              </div>
             );
-        }
+          }
+
+          if (screen === 'auth') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center p-4">
+                <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center">
+                  <Brain />
+                  <h1 className="text-4xl font-bold text-purple-600 mb-6">NeuroFit</h1>
+                  <button onClick={handleRegister} className="w-full bg-purple-600 text-white py-4 rounded-xl font-bold text-xl hover:bg-purple-700 transition-all">
+                    Entrar como Invitado
+                  </button>
+                  <p className="mt-4 text-gray-500 text-sm">El sistema de usuarios está listo.</p>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div className="min-h-screen bg-gray-100 p-4">
+              <div className="max-w-4xl mx-auto">
+                <div className="bg-white rounded-3xl shadow-xl p-6 mb-6 flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Brain />
+                    <div className="ml-4">
+                      <h1 className="text-3xl font-black text-purple-600">NeuroFit</h1>
+                      <p className="text-gray-500">¡Hola, {user.username}!</p>
+                    </div>
+                  </div>
+                  <button onClick={() => {localStorage.clear(); window.location.reload();}} className="text-red-500 font-bold">Salir</button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 mb-8">
+                  <div className="bg-blue-100 p-4 rounded-2xl text-center">
+                    <Trophy />
+                    <p className="text-2xl font-bold text-blue-700">{user.totalScore}</p>
+                    <p className="text-xs text-blue-600">Puntos</p>
+                  </div>
+                  <div className="bg-green-100 p-4 rounded-2xl text-center">
+                    <Zap />
+                    <p className="text-2xl font-bold text-green-700">{user.streak}</p>
+                    <p className="text-xs text-green-600">Racha</p>
+                  </div>
+                  <div className="bg-purple-100 p-4 rounded-2xl text-center">
+                    <Star />
+                    <p className="text-2xl font-bold text-purple-700">{user.levelsPlayed}</p>
+                    <p className="text-xs text-purple-600">Niveles</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                  {['Memoria', 'Velocidad', 'Atención', 'Lenguaje', 'Lógica', 'Cálculo'].map((game) => (
+                    <div key={game} className="bg-white p-6 rounded-3xl shadow-md border-b-4 border-gray-200 flex flex-col items-center">
+                      <div className="text-4xl mb-2 opacity-50">🧩</div>
+                      <p className="font-bold text-gray-700">{game}</p>
+                      <Lock />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(<NeuroFit />);
     </script>
 </body>
 </html>
