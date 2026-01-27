@@ -13,8 +13,10 @@
     <div id="root"></div>
 
     <script type="text/babel">
-const { useState, useEffect } = React;const { Brain, Trophy, Zap, Star, Lock, Clock } = window.lucide;       
-
+    const { useState, useEffect } = React;
+    // Añade esta línea para los iconos:
+    const { Brain, Trophy, Zap, Star, Lock, Clock } = window.lucide;
+  
 const NeuroFit = () => {
   const [screen, setScreen] = useState('loading');
   const [user, setUser] = useState(null);
@@ -347,6 +349,7 @@ const NeuroFit = () => {
 
 export default NeuroFit;
    const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<NeuroFit />); </script>
+root.render(<NeuroFit />);
+    </script>
 </body>
 </html>
