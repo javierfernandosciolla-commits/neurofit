@@ -1,1 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroFit - Demo</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div id="root"></div>
 
+    <script type="text/babel">
+        // 2. Definimos las herramientas (esto reemplaza los 'import')
+        const { useState, useEffect } = React;
+        const { Brain, Trophy, Zap, Star, Lock, Clock } = window.lucide;
+
+        const NeuroFit = () => {
+            const [screen, setScreen] = useState('loading');
+
+            useEffect(() => {
+                // El cerebro azul aparecerá por 3 segundos antes de pasar a la siguiente pantalla
+                const timer = setTimeout(() => setScreen('ready'), 3000);
+                return () => clearTimeout(timer);
+            }, []);
+
+            if (screen === 'loading') {
+                return (
+                    <div className="min-h-screen bg-slate-900 flex items-center justify-center text-center p-4">
+                        <div>
+                            {/* AQUÍ ESTÁ EL FAMOSO CEREBRO AZUL */}
+                            <Brain className="w-20 h-20 text-blue-500 animate-pulse mx-auto mb-6" />
+                            <h1 className="text-3xl font-bold text-white tracking-widest animate-bounce">NEUROFIT</h1>
+                            <p className="text-blue-300 mt-4 font-mono">INICIALIZANDO SISTEMA...</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+                    <div className="bg-white p-10 rounded-3xl shadow-2xl text-center max-w-md border-t-4 border-blue-500">
+                        <Trophy className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+                        <h1 className="text-3xl font-extrabold text-slate-800 mb-2">¡NeuroFit Listo!</h1>
+                        <p className="text-slate-600 mb-8 text-lg">Tu aplicación ya está en la nube. ¡Felicidades!</p>
+                        <button className="w-full bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg active:scale-95">
+                            EMPEZAR AHORA
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // 3. El comando final para encender la app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<NeuroFit />);
+    </script>
+</body>
+</html>
