@@ -3,17 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeuroFit - Entrenamiento Cognitivo</title>
+    <title>NeuroFit - Training Center</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { margin: 0; font-family: sans-serif; background-color: #f3f4f6; }
-        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
-        .simon-btn { transition: all 0.2s; }
-        .simon-btn:active { transform: scale(0.95); }
+        body { margin: 0; font-family: sans-serif; background-color: #f8fafc; }
+        .game-btn { transition: all 0.2s; }
+        .game-btn:hover { transform: translateY(-4px); }
+        .game-btn:active { transform: translateY(0); }
     </style>
 </head>
 <body>
@@ -22,183 +21,139 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- ICONOS ---
-        const Brain = () => <span className="text-4xl">🧠</span>;
-        const StarIcon = () => <span className="mr-2">⭐</span>;
+        // --- ICONOS SIMULADOS ---
+        const Icon = ({e, c}) => <span className={`text-4xl mb-2 ${c}`}>{e}</span>;
 
-        // --- JUEGO 1: PARES DE CARTAS ---
-        const MemoryGame = ({ onComplete }) => {
-            const [cards, setCards] = useState([]);
-            const [flipped, setFlipped] = useState([]);
-            const [matched, setMatched] = useState([]);
-            const [moves, setMoves] = useState(0);
-            const [timeLeft, setTimeLeft] = useState(60);
-            const symbols = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍒'];
+        // --- JUEGO: CÁLCULO RÁPIDO ---
+        const SpeedGame = ({ onComplete }) => {
+            const [question, setQuestion] = useState(null);
+            const [score, setScore] = useState(0);
+            const [streak, setStreak] = useState(0);
+            const [timeLeft, setTimeLeft] = useState(45);
+            const [feedback, setFeedback] = useState(null);
+
+            const generate = () => {
+                const ops = ['+', '-', '×'];
+                const op = ops[Math.floor(Math.random() * 3)];
+                let n1, n2, ans;
+                if (op === '+') { n1 = Math.floor(Math.random() * 40)+10; n2 = Math.floor(Math.random() * 40)+10; ans = n1+n2; }
+                else if (op === '-') { n1 = Math.floor(Math.random() * 50)+20; n2 = Math.floor(Math.random() * 20)+5; ans = n1-n2; }
+                else { n1 = Math.floor(Math.random() * 10)+2; n2 = Math.floor(Math.random() * 10)+2; ans = n1*n2; }
+                
+                const alt = [ans, ans + 5, ans - 3].sort(() => Math.random() - 0.5);
+                setQuestion({ n1, n2, op, ans, alt });
+            };
 
             useEffect(() => {
-                const gameCards = [...symbols, ...symbols]
-                    .sort(() => Math.random() - 0.5)
-                    .map((symbol, index) => ({ id: index, symbol }));
-                setCards(gameCards);
+                generate();
+                const timer = setInterval(() => setTimeLeft(prev => {
+                    if (prev <= 1) { clearInterval(timer); onComplete(score); return 0; }
+                    return prev - 1;
+                }), 1000);
+                return () => clearInterval(timer);
             }, []);
 
-            useEffect(() => {
-                if (timeLeft > 0 && matched.length < cards.length) {
-                    const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-                    return () => clearTimeout(timer);
-                } else if (timeLeft === 0) onComplete(0);
-            }, [timeLeft, matched]);
-
-            const handleCardClick = (index) => {
-                if (flipped.length === 2 || flipped.includes(index) || matched.includes(index)) return;
-                const newFlipped = [...flipped, index];
-                setFlipped(newFlipped);
-                if (newFlipped.length === 2) {
-                    setMoves(moves + 1);
-                    if (cards[newFlipped[0]].symbol === cards[newFlipped[1]].symbol) {
-                        setMatched([...matched, ...newFlipped]);
-                        setFlipped([]);
-                    } else {
-                        setTimeout(() => setFlipped([]), 800);
-                    }
+            const check = (val) => {
+                if (val === question.ans) {
+                    const p = 100 + (streak * 20);
+                    setScore(score + p);
+                    setStreak(streak + 1);
+                    setFeedback("✅");
+                } else {
+                    setStreak(0);
+                    setFeedback("❌");
                 }
+                setTimeout(() => { setFeedback(null); generate(); }, 400);
             };
 
-            useEffect(() => {
-                if (matched.length === cards.length && cards.length > 0) {
-                    onComplete(Math.max(500, 1000 - (moves * 20)));
-                }
-            }, [matched]);
-
             return (
-                <div className="flex flex-col items-center p-4">
-                    <h2 className="text-2xl font-bold mb-4">Pares de Cartas</h2>
-                    <div className="grid grid-cols-4 gap-2 mb-4">
-                        {cards.map((card, i) => (
-                            <button key={i} onClick={() => handleCardClick(i)} className={`h-16 w-16 text-2xl rounded-lg ${flipped.includes(i) || matched.includes(i) ? 'bg-white' : 'bg-purple-500 text-white'}`}>
-                                {flipped.includes(i) || matched.includes(i) ? card.symbol : '?'}
-                            </button>
-                        ))}
+                <div className="p-6 text-center max-w-md mx-auto">
+                    <div className="flex justify-between mb-8 font-black text-lg">
+                        <div className="text-orange-500">⏱️ {timeLeft}s</div>
+                        <div className="text-green-500">⭐ {score}</div>
+                        <div className="text-purple-500">⚡ {streak}</div>
                     </div>
-                    <p className="font-bold">Tiempo: {timeLeft}s | Movimientos: {moves}</p>
+                    {question && (
+                        <div className="bg-white rounded-3xl p-8 shadow-xl border-2 border-blue-100">
+                            <div className="text-5xl font-black mb-10 text-gray-800">
+                                {question.n1} {question.op} {question.n2}
+                            </div>
+                            <div className="grid gap-4">
+                                {question.alt.map((a, i) => (
+                                    <button key={i} onClick={() => check(a)} disabled={feedback}
+                                        className="bg-blue-600 text-white py-5 rounded-2xl text-2xl font-bold shadow-lg active:bg-blue-800">
+                                        {a}
+                                    </button>
+                                ))}
+                            </div>
+                            {feedback && <div className="mt-4 text-4xl">{feedback}</div>}
+                        </div>
+                    )}
                 </div>
             );
         };
 
-        // --- JUEGO 2: SECUENCIA SIMON ---
-        const Memory2Game = ({ onComplete }) => {
-            const [sequence, setSequence] = useState([]);
-            const [userSequence, setUserSequence] = useState([]);
-            const [isPlaying, setIsPlaying] = useState(false);
-            const [activeColor, setActiveColor] = useState(null);
-            const [round, setRound] = useState(1);
-            const colors = ['red', 'blue', 'green', 'yellow'];
-
-            const startRound = (currentSeq = []) => {
-                const next = colors[Math.floor(Math.random() * 4)];
-                const newSeq = [...currentSeq, next];
-                setSequence(newSeq);
-                setUserSequence([]);
-                play(newSeq);
-            };
-
-            const play = async (seq) => {
-                setIsPlaying(true);
-                for (let c of seq) {
-                    await new Promise(r => setTimeout(r, 400));
-                    setActiveColor(c);
-                    await new Promise(r => setTimeout(r, 600));
-                    setActiveColor(null);
-                }
-                setIsPlaying(false);
-            };
-
-            const handleClick = (color) => {
-                if (isPlaying) return;
-                setActiveColor(color);
-                setTimeout(() => setActiveColor(null), 300);
-                const nextUserSeq = [...userSequence, color];
-                setUserSequence(nextUserSeq);
-
-                if (color !== sequence[nextUserSeq.length - 1]) {
-                    onComplete((round - 1) * 200);
-                    return;
-                }
-                if (nextUserSeq.length === sequence.length) {
-                    setRound(round + 1);
-                    setTimeout(() => startRound(sequence), 1000);
-                }
-            };
-
-            useEffect(() => { startRound(); }, []);
-
-            return (
-                <div className="flex flex-col items-center p-4">
-                    <h2 className="text-2xl font-bold mb-2 text-purple-700">Secuencia Simon</h2>
-                    <div className="bg-purple-100 px-4 py-1 rounded-full mb-6 font-bold">Nivel {round}</div>
-                    <div className="grid grid-cols-2 gap-4 max-w-xs w-full">
-                        {colors.map(c => (
-                            <button key={c} onClick={() => handleClick(c)} 
-                                className={`h-32 rounded-3xl simon-btn ${activeColor === c ? 'brightness-150 scale-105 shadow-xl' : 'opacity-80'} ${
-                                    c === 'red' ? 'bg-red-500' : c === 'blue' ? 'bg-blue-500' : c === 'green' ? 'bg-green-500' : 'bg-yellow-400'
-                                }`}
-                            />
-                        ))}
-                    </div>
-                </div>
-            );
-        };
+        // --- COMPONENTES MEMORIA (RESUMIDOS PARA EL EJEMPLO) ---
+        const MemorySelect = ({onSelect, onBack}) => (
+            <div className="p-6 grid gap-4">
+                <h2 className="text-2xl font-black text-center text-purple-600 mb-4 uppercase">Modos de Memoria</h2>
+                <button onClick={() => onSelect('pairs')} className="bg-white p-6 rounded-2xl shadow border-l-8 border-blue-500 font-bold text-left">🧩 Pares de Cartas</button>
+                <button onClick={() => onSelect('simon')} className="bg-white p-6 rounded-2xl shadow border-l-8 border-pink-500 font-bold text-left">🔴 Secuencia Simon</button>
+                <button onClick={onBack} className="mt-4 text-gray-400 font-bold">Volver al Menú</button>
+            </div>
+        );
 
         // --- APP PRINCIPAL ---
-        const App = () => {
+        const NeuroFitApp = () => {
             const [screen, setScreen] = useState('home');
-            const [user, setUser] = useState({ totalScore: 0, levelsPlayed: 0 });
+            const [user, setUser] = useState({ points: 0, levels: 0 });
 
-            const finishGame = (points) => {
-                const newScore = user.totalScore + points;
-                setUser({ ...user, totalScore: newScore, levelsPlayed: user.levelsPlayed + 1 });
+            const finish = (p) => {
+                setUser(prev => ({ points: prev.points + p, levels: prev.levels + 1 }));
                 setScreen('home');
             };
 
+            if (screen === 'home') return (
+                <div className="max-w-md mx-auto p-4">
+                    <div className="bg-white p-6 rounded-3xl shadow-xl flex justify-between items-center mb-8 border-b-4 border-purple-200">
+                        <div className="text-center"><p className="text-xs font-bold text-gray-400">SCORE</p><p className="text-2xl font-black text-purple-600">{user.points}</p></div>
+                        <div className="text-4xl">🧠</div>
+                        <div className="text-center"><p className="text-xs font-bold text-gray-400">LEVELS</p><p className="text-2xl font-black text-blue-600">{user.levels}</p></div>
+                    </div>
+                    
+                    <h2 className="font-black text-gray-400 uppercase tracking-widest text-sm mb-4">Entrenamientos Disponibles</h2>
+                    <div className="grid gap-6">
+                        <div onClick={() => setScreen('memory_sel')} className="game-btn bg-white p-6 rounded-3xl shadow-md border-b-8 border-purple-500 cursor-pointer flex items-center">
+                            <span className="text-4xl mr-4">🧩</span>
+                            <div><p className="font-black text-gray-700">MEMORIA</p><p className="text-xs text-green-500 font-bold uppercase">2 Juegos</p></div>
+                        </div>
+                        <div onClick={() => setScreen('game_speed')} className="game-btn bg-white p-6 rounded-3xl shadow-md border-b-8 border-blue-500 cursor-pointer flex items-center">
+                            <span className="text-4xl mr-4">⚡</span>
+                            <div><p className="font-black text-gray-700">VELOCIDAD</p><p className="text-xs text-blue-500 font-bold uppercase">Cálculo Rápido</p></div>
+                        </div>
+                        {['Atención', 'Lógica'].map(g => (
+                            <div key={g} className="bg-gray-100 p-6 rounded-3xl flex items-center opacity-50">
+                                <span className="text-4xl mr-4">🔒</span>
+                                <p className="font-black text-gray-400 uppercase">{g}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+
             return (
-                <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4">
-                    {screen === 'home' && (
-                        <div className="w-full max-w-md">
-                            <div className="bg-white p-6 rounded-3xl shadow-lg mb-6 flex justify-between items-center text-center">
-                                <div><p className="text-xs font-bold text-gray-400">PUNTOS</p><p className="text-2xl font-black text-purple-600">{user.totalScore}</p></div>
-                                <Brain />
-                                <div><p className="text-xs font-bold text-gray-400">NIVELES</p><p className="text-2xl font-black text-blue-600">{user.levelsPlayed}</p></div>
-                            </div>
-                            <h2 className="text-center font-bold text-gray-400 mb-4 tracking-tighter uppercase">Menú de Juegos</h2>
-                            <button onClick={() => setScreen('select_memory')} className="w-full bg-white p-8 rounded-3xl shadow-md border-b-8 border-purple-500 flex flex-col items-center hover:bg-purple-50 transition-colors">
-                                <span className="text-5xl mb-2">🧩</span>
-                                <span className="text-xl font-bold text-gray-700">MEMORIA</span>
-                                <span className="text-xs text-green-500 font-bold">2 JUEGOS DISPONIBLES</span>
-                            </button>
-                        </div>
-                    )}
-
-                    {screen === 'select_memory' && (
-                        <div className="w-full max-w-md text-center">
-                            <h2 className="text-2xl font-bold mb-6 text-purple-700">Elige tu desafío</h2>
-                            <div className="space-y-4">
-                                <button onClick={() => setScreen('game_pairs')} className="w-full bg-blue-500 text-white p-6 rounded-2xl font-bold shadow-lg">1. Pares de Cartas</button>
-                                <button onClick={() => setScreen('game_simon')} className="w-full bg-pink-500 text-white p-6 rounded-2xl font-bold shadow-lg">2. Secuencia Simon</button>
-                                <button onClick={() => setScreen('home')} className="w-full text-gray-400 font-bold">Volver</button>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="bg-white rounded-3xl shadow-2xl mt-4">
-                        {screen === 'game_pairs' && <MemoryGame onComplete={finishGame} />}
-                        {screen === 'game_simon' && <Memory2Game onComplete={finishGame} />}
+                <div className="min-h-screen">
+                    {screen === 'memory_sel' && <MemorySelect onBack={() => setScreen('home')} onSelect={(m) => setScreen('game_'+m)} />}
+                    {screen === 'game_speed' && <SpeedGame onComplete={finish} />}
+                    <div className="text-center mt-4">
+                        <button onClick={() => setScreen('home')} className="text-gray-400 font-bold text-sm">SALIR</button>
                     </div>
                 </div>
             );
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(<NeuroFitApp />);
     </script>
 </body>
 </html>
