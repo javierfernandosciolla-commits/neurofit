@@ -12,6 +12,8 @@
         body { margin: 0; font-family: sans-serif; background-color: #f3f4f6; }
         .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+        .simon-btn { transition: all 0.2s; }
+        .simon-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -20,54 +22,34 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- COMPONENTES DE ICONOS ---
+        // --- ICONOS ---
         const Brain = () => <span className="text-4xl">🧠</span>;
-        const Trophy = () => <span className="text-2xl">🏆</span>;
-        const Zap = () => <span className="text-2xl">⚡</span>;
-        const Star = () => <span className="text-2xl">⭐</span>;
-        const Lock = () => <span className="text-xl">🔒</span>;
-        const ClockIcon = () => <span className="mr-2">🕒</span>;
-        const TargetIcon = () => <span className="mr-2">🎯</span>;
+        const StarIcon = () => <span className="mr-2">⭐</span>;
 
-        // --- COMPONENTE: JUEGO DE MEMORIA (PARES) ---
+        // --- JUEGO 1: PARES DE CARTAS ---
         const MemoryGame = ({ onComplete }) => {
             const [cards, setCards] = useState([]);
             const [flipped, setFlipped] = useState([]);
             const [matched, setMatched] = useState([]);
             const [moves, setMoves] = useState(0);
             const [timeLeft, setTimeLeft] = useState(60);
-            const [gameStarted, setGameStarted] = useState(false);
             const symbols = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍒'];
 
-            useEffect(() => { initGame(); }, []);
-
             useEffect(() => {
-                if (gameStarted && timeLeft > 0) {
-                    const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-                    return () => clearTimeout(timer);
-                }
-                if (timeLeft === 0 && matched.length < cards.length) {
-                    alert("¡Se acabó el tiempo!");
-                    onComplete(0);
-                }
-            }, [timeLeft, gameStarted]);
-
-            useEffect(() => {
-                if (matched.length === cards.length && cards.length > 0) {
-                    const score = Math.max(1000 - (moves * 50) + (timeLeft * 10), 100);
-                    setTimeout(() => onComplete(score), 500);
-                }
-            }, [matched]);
-
-            const initGame = () => {
                 const gameCards = [...symbols, ...symbols]
                     .sort(() => Math.random() - 0.5)
                     .map((symbol, index) => ({ id: index, symbol }));
                 setCards(gameCards);
-            };
+            }, []);
+
+            useEffect(() => {
+                if (timeLeft > 0 && matched.length < cards.length) {
+                    const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+                    return () => clearTimeout(timer);
+                } else if (timeLeft === 0) onComplete(0);
+            }, [timeLeft, matched]);
 
             const handleCardClick = (index) => {
-                if (!gameStarted) setGameStarted(true);
                 if (flipped.length === 2 || flipped.includes(index) || matched.includes(index)) return;
                 const newFlipped = [...flipped, index];
                 setFlipped(newFlipped);
@@ -82,135 +64,141 @@
                 }
             };
 
+            useEffect(() => {
+                if (matched.length === cards.length && cards.length > 0) {
+                    onComplete(Math.max(500, 1000 - (moves * 20)));
+                }
+            }, [matched]);
+
             return (
-                <div className="min-h-screen bg-purple-100 p-4 flex flex-col items-center">
-                    <div className="bg-white rounded-3xl shadow-xl p-6 w-full max-w-md">
-                        <div className="flex justify-between mb-6">
-                            <div className="bg-blue-100 px-4 py-2 rounded-xl font-bold text-blue-700">
-                                <ClockIcon />{timeLeft}s
-                            </div>
-                            <div className="bg-green-100 px-4 py-2 rounded-xl font-bold text-green-700">
-                                <TargetIcon />{moves}
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-4 gap-3">
-                            {cards.map((card, index) => (
-                                <button
-                                    key={index}
-                                    onClick={() => handleCardClick(index)}
-                                    className={`aspect-square rounded-xl text-3xl flex items-center justify-center transition-all ${
-                                        flipped.includes(index) || matched.includes(index)
-                                        ? 'bg-white border-2 border-purple-500 shadow-inner'
-                                        : 'bg-purple-500 text-white shadow-lg font-bold'
-                                    }`}
-                                >
-                                    {flipped.includes(index) || matched.includes(index) ? card.symbol : '?'}
-                                </button>
-                            ))}
-                        </div>
-                        <button onClick={() => onComplete(0)} className="mt-6 w-full text-gray-400 font-bold py-2">Abandonar</button>
+                <div className="flex flex-col items-center p-4">
+                    <h2 className="text-2xl font-bold mb-4">Pares de Cartas</h2>
+                    <div className="grid grid-cols-4 gap-2 mb-4">
+                        {cards.map((card, i) => (
+                            <button key={i} onClick={() => handleCardClick(i)} className={`h-16 w-16 text-2xl rounded-lg ${flipped.includes(i) || matched.includes(i) ? 'bg-white' : 'bg-purple-500 text-white'}`}>
+                                {flipped.includes(i) || matched.includes(i) ? card.symbol : '?'}
+                            </button>
+                        ))}
+                    </div>
+                    <p className="font-bold">Tiempo: {timeLeft}s | Movimientos: {moves}</p>
+                </div>
+            );
+        };
+
+        // --- JUEGO 2: SECUENCIA SIMON ---
+        const Memory2Game = ({ onComplete }) => {
+            const [sequence, setSequence] = useState([]);
+            const [userSequence, setUserSequence] = useState([]);
+            const [isPlaying, setIsPlaying] = useState(false);
+            const [activeColor, setActiveColor] = useState(null);
+            const [round, setRound] = useState(1);
+            const colors = ['red', 'blue', 'green', 'yellow'];
+
+            const startRound = (currentSeq = []) => {
+                const next = colors[Math.floor(Math.random() * 4)];
+                const newSeq = [...currentSeq, next];
+                setSequence(newSeq);
+                setUserSequence([]);
+                play(newSeq);
+            };
+
+            const play = async (seq) => {
+                setIsPlaying(true);
+                for (let c of seq) {
+                    await new Promise(r => setTimeout(r, 400));
+                    setActiveColor(c);
+                    await new Promise(r => setTimeout(r, 600));
+                    setActiveColor(null);
+                }
+                setIsPlaying(false);
+            };
+
+            const handleClick = (color) => {
+                if (isPlaying) return;
+                setActiveColor(color);
+                setTimeout(() => setActiveColor(null), 300);
+                const nextUserSeq = [...userSequence, color];
+                setUserSequence(nextUserSeq);
+
+                if (color !== sequence[nextUserSeq.length - 1]) {
+                    onComplete((round - 1) * 200);
+                    return;
+                }
+                if (nextUserSeq.length === sequence.length) {
+                    setRound(round + 1);
+                    setTimeout(() => startRound(sequence), 1000);
+                }
+            };
+
+            useEffect(() => { startRound(); }, []);
+
+            return (
+                <div className="flex flex-col items-center p-4">
+                    <h2 className="text-2xl font-bold mb-2 text-purple-700">Secuencia Simon</h2>
+                    <div className="bg-purple-100 px-4 py-1 rounded-full mb-6 font-bold">Nivel {round}</div>
+                    <div className="grid grid-cols-2 gap-4 max-w-xs w-full">
+                        {colors.map(c => (
+                            <button key={c} onClick={() => handleClick(c)} 
+                                className={`h-32 rounded-3xl simon-btn ${activeColor === c ? 'brightness-150 scale-105 shadow-xl' : 'opacity-80'} ${
+                                    c === 'red' ? 'bg-red-500' : c === 'blue' ? 'bg-blue-500' : c === 'green' ? 'bg-green-500' : 'bg-yellow-400'
+                                }`}
+                            />
+                        ))}
                     </div>
                 </div>
             );
         };
 
-        // --- COMPONENTE PRINCIPAL ---
-        const NeuroFit = () => {
-          const [screen, setScreen] = useState('loading');
-          const [user, setUser] = useState(null);
+        // --- APP PRINCIPAL ---
+        const App = () => {
+            const [screen, setScreen] = useState('home');
+            const [user, setUser] = useState({ totalScore: 0, levelsPlayed: 0 });
 
-          useEffect(() => {
-            const sessionData = localStorage.getItem('neurofit_session');
-            if (sessionData) {
-              setUser(JSON.parse(sessionData));
-              setScreen('home');
-            } else {
-              setTimeout(() => setScreen('auth'), 1500);
-            }
-          }, []);
-
-          const handleRegister = () => {
-            const newUser = { username: "Invitado", totalScore: 0, streak: 0, levelsPlayed: 0 };
-            localStorage.setItem('neurofit_session', JSON.stringify(newUser));
-            setUser(newUser);
-            setScreen('home');
-          };
-
-          const handleGameComplete = (score) => {
-            const updatedUser = { 
-                ...user, 
-                totalScore: user.totalScore + score,
-                levelsPlayed: user.levelsPlayed + (score > 0 ? 1 : 0)
+            const finishGame = (points) => {
+                const newScore = user.totalScore + points;
+                setUser({ ...user, totalScore: newScore, levelsPlayed: user.levelsPlayed + 1 });
+                setScreen('home');
             };
-            setUser(updatedUser);
-            localStorage.setItem('neurofit_session', JSON.stringify(updatedUser));
-            setScreen('home');
-          };
 
-          if (screen === 'loading') return (
-            <div className="min-h-screen bg-purple-700 flex flex-col items-center justify-center text-white text-center">
-              <div className="text-6xl animate-pulse mb-4">🧠</div>
-              <h1 className="text-2xl font-bold">Cargando NeuroFit...</h1>
-            </div>
-          );
+            return (
+                <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4">
+                    {screen === 'home' && (
+                        <div className="w-full max-w-md">
+                            <div className="bg-white p-6 rounded-3xl shadow-lg mb-6 flex justify-between items-center text-center">
+                                <div><p className="text-xs font-bold text-gray-400">PUNTOS</p><p className="text-2xl font-black text-purple-600">{user.totalScore}</p></div>
+                                <Brain />
+                                <div><p className="text-xs font-bold text-gray-400">NIVELES</p><p className="text-2xl font-black text-blue-600">{user.levelsPlayed}</p></div>
+                            </div>
+                            <h2 className="text-center font-bold text-gray-400 mb-4 tracking-tighter uppercase">Menú de Juegos</h2>
+                            <button onClick={() => setScreen('select_memory')} className="w-full bg-white p-8 rounded-3xl shadow-md border-b-8 border-purple-500 flex flex-col items-center hover:bg-purple-50 transition-colors">
+                                <span className="text-5xl mb-2">🧩</span>
+                                <span className="text-xl font-bold text-gray-700">MEMORIA</span>
+                                <span className="text-xs text-green-500 font-bold">2 JUEGOS DISPONIBLES</span>
+                            </button>
+                        </div>
+                    )}
 
-          if (screen === 'auth') return (
-            <div className="min-h-screen bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center p-4">
-                <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center">
-                    <Brain /><h1 className="text-4xl font-bold text-purple-600 mb-6">NeuroFit</h1>
-                    <button onClick={handleRegister} className="w-full bg-purple-600 text-white py-4 rounded-xl font-bold text-xl">Entrar ahora</button>
-                </div>
-            </div>
-          );
+                    {screen === 'select_memory' && (
+                        <div className="w-full max-w-md text-center">
+                            <h2 className="text-2xl font-bold mb-6 text-purple-700">Elige tu desafío</h2>
+                            <div className="space-y-4">
+                                <button onClick={() => setScreen('game_pairs')} className="w-full bg-blue-500 text-white p-6 rounded-2xl font-bold shadow-lg">1. Pares de Cartas</button>
+                                <button onClick={() => setScreen('game_simon')} className="w-full bg-pink-500 text-white p-6 rounded-2xl font-bold shadow-lg">2. Secuencia Simon</button>
+                                <button onClick={() => setScreen('home')} className="w-full text-gray-400 font-bold">Volver</button>
+                            </div>
+                        </div>
+                    )}
 
-          if (screen === 'game_memory') return <MemoryGame onComplete={handleGameComplete} />;
-
-          return (
-            <div className="min-h-screen bg-gray-100 p-4">
-              <div className="max-w-4xl mx-auto">
-                <div className="bg-white rounded-3xl shadow-xl p-6 mb-6 flex items-center justify-between">
-                  <div className="flex items-center"><Brain /><div className="ml-4">
-                  <h1 className="text-3xl font-black text-purple-600 leading-tight">NeuroFit</h1>
-                  <p className="text-gray-500 font-medium">¡Hola, {user.username}!</p></div></div>
-                  <button onClick={() => {localStorage.clear(); window.location.reload();}} className="bg-red-50 text-red-500 px-4 py-2 rounded-xl font-bold">Salir</button>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4 mb-8">
-                  <div className="bg-blue-50 p-4 rounded-2xl text-center border-b-4 border-blue-200">
-                    <Trophy /><p className="text-2xl font-bold text-blue-700">{user.totalScore}</p>
-                    <p className="text-xs font-bold text-blue-400 uppercase">Puntos</p>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-2xl text-center border-b-4 border-green-200">
-                    <Zap /><p className="text-2xl font-bold text-green-700">{user.streak}</p>
-                    <p className="text-xs font-bold text-green-400 uppercase">Racha</p>
-                  </div>
-                  <div className="bg-purple-50 p-4 rounded-2xl text-center border-b-4 border-purple-200">
-                    <Star /><p className="text-2xl font-bold text-purple-700">{user.levelsPlayed}</p>
-                    <p className="text-xs font-bold text-purple-400 uppercase">Niveles</p>
-                  </div>
-                </div>
-
-                <h2 className="text-xl font-bold text-gray-700 mb-4 ml-2 text-center uppercase tracking-widest">Entrenamientos</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                    <div onClick={() => setScreen('game_memory')} className="bg-white p-6 rounded-3xl shadow-md border-b-8 border-purple-500 hover:scale-105 transition-transform cursor-pointer flex flex-col items-center">
-                      <div className="text-4xl mb-2">🧠</div>
-                      <p className="font-bold text-gray-700">Memoria</p>
-                      <span className="text-xs text-green-500 font-bold">¡DESBLOQUEADO!</span>
+                    <div className="bg-white rounded-3xl shadow-2xl mt-4">
+                        {screen === 'game_pairs' && <MemoryGame onComplete={finishGame} />}
+                        {screen === 'game_simon' && <Memory2Game onComplete={finishGame} />}
                     </div>
-                    {['Velocidad', 'Atención', 'Lenguaje', 'Lógica', 'Cálculo'].map((game) => (
-                    <div key={game} className="bg-white p-6 rounded-3xl shadow-md border-b-8 border-gray-200 opacity-60 flex flex-col items-center">
-                      <div className="text-4xl mb-2">🔒</div>
-                      <p className="font-bold text-gray-700">{game}</p>
-                    </div>
-                  ))}
                 </div>
-              </div>
-            </div>
-          );
+            );
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<NeuroFit />);
+        root.render(<App />);
     </script>
 </body>
 </html>
