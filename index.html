@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeuroFit - Panel Principal</title>
+    <title>NeuroFit - Entrenamiento Cognitivo</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@0.263.1"></script>
     <style>
         body { margin: 0; font-family: sans-serif; background-color: #f3f4f6; }
         .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
@@ -21,13 +20,101 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // Adaptamos Lucide para esta versión
-        const Brain = () => <span style={{fontSize: '2rem'}}>🧠</span>;
-        const Trophy = () => <span style={{fontSize: '1.5rem'}}>🏆</span>;
-        const Zap = () => <span style={{fontSize: '1.5rem'}}>⚡</span>;
-        const Star = () => <span style={{fontSize: '1.5rem'}}>⭐</span>;
-        const Lock = () => <span style={{fontSize: '1.2rem'}}>🔒</span>;
+        // --- COMPONENTES DE ICONOS ---
+        const Brain = () => <span className="text-4xl">🧠</span>;
+        const Trophy = () => <span className="text-2xl">🏆</span>;
+        const Zap = () => <span className="text-2xl">⚡</span>;
+        const Star = () => <span className="text-2xl">⭐</span>;
+        const Lock = () => <span className="text-xl">🔒</span>;
+        const ClockIcon = () => <span className="mr-2">🕒</span>;
+        const TargetIcon = () => <span className="mr-2">🎯</span>;
 
+        // --- COMPONENTE: JUEGO DE MEMORIA (PARES) ---
+        const MemoryGame = ({ onComplete }) => {
+            const [cards, setCards] = useState([]);
+            const [flipped, setFlipped] = useState([]);
+            const [matched, setMatched] = useState([]);
+            const [moves, setMoves] = useState(0);
+            const [timeLeft, setTimeLeft] = useState(60);
+            const [gameStarted, setGameStarted] = useState(false);
+            const symbols = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍒'];
+
+            useEffect(() => { initGame(); }, []);
+
+            useEffect(() => {
+                if (gameStarted && timeLeft > 0) {
+                    const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+                    return () => clearTimeout(timer);
+                }
+                if (timeLeft === 0 && matched.length < cards.length) {
+                    alert("¡Se acabó el tiempo!");
+                    onComplete(0);
+                }
+            }, [timeLeft, gameStarted]);
+
+            useEffect(() => {
+                if (matched.length === cards.length && cards.length > 0) {
+                    const score = Math.max(1000 - (moves * 50) + (timeLeft * 10), 100);
+                    setTimeout(() => onComplete(score), 500);
+                }
+            }, [matched]);
+
+            const initGame = () => {
+                const gameCards = [...symbols, ...symbols]
+                    .sort(() => Math.random() - 0.5)
+                    .map((symbol, index) => ({ id: index, symbol }));
+                setCards(gameCards);
+            };
+
+            const handleCardClick = (index) => {
+                if (!gameStarted) setGameStarted(true);
+                if (flipped.length === 2 || flipped.includes(index) || matched.includes(index)) return;
+                const newFlipped = [...flipped, index];
+                setFlipped(newFlipped);
+                if (newFlipped.length === 2) {
+                    setMoves(moves + 1);
+                    if (cards[newFlipped[0]].symbol === cards[newFlipped[1]].symbol) {
+                        setMatched([...matched, ...newFlipped]);
+                        setFlipped([]);
+                    } else {
+                        setTimeout(() => setFlipped([]), 800);
+                    }
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-purple-100 p-4 flex flex-col items-center">
+                    <div className="bg-white rounded-3xl shadow-xl p-6 w-full max-w-md">
+                        <div className="flex justify-between mb-6">
+                            <div className="bg-blue-100 px-4 py-2 rounded-xl font-bold text-blue-700">
+                                <ClockIcon />{timeLeft}s
+                            </div>
+                            <div className="bg-green-100 px-4 py-2 rounded-xl font-bold text-green-700">
+                                <TargetIcon />{moves}
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-4 gap-3">
+                            {cards.map((card, index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => handleCardClick(index)}
+                                    className={`aspect-square rounded-xl text-3xl flex items-center justify-center transition-all ${
+                                        flipped.includes(index) || matched.includes(index)
+                                        ? 'bg-white border-2 border-purple-500 shadow-inner'
+                                        : 'bg-purple-500 text-white shadow-lg font-bold'
+                                    }`}
+                                >
+                                    {flipped.includes(index) || matched.includes(index) ? card.symbol : '?'}
+                                </button>
+                            ))}
+                        </div>
+                        <button onClick={() => onComplete(0)} className="mt-6 w-full text-gray-400 font-bold py-2">Abandonar</button>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- COMPONENTE PRINCIPAL ---
         const NeuroFit = () => {
           const [screen, setScreen] = useState('loading');
           const [user, setUser] = useState(null);
@@ -42,76 +129,78 @@
             }
           }, []);
 
-          const handleRegister = (e) => {
-            e.preventDefault();
+          const handleRegister = () => {
             const newUser = { username: "Invitado", totalScore: 0, streak: 0, levelsPlayed: 0 };
             localStorage.setItem('neurofit_session', JSON.stringify(newUser));
             setUser(newUser);
             setScreen('home');
           };
 
-          if (screen === 'loading') {
-            return (
-              <div className="min-h-screen bg-purple-700 flex flex-col items-center justify-center text-white">
-                <div className="text-6xl animate-pulse mb-4">🧠</div>
-                <h1 className="text-2xl font-bold">Iniciando NeuroFit...</h1>
-              </div>
-            );
-          }
+          const handleGameComplete = (score) => {
+            const updatedUser = { 
+                ...user, 
+                totalScore: user.totalScore + score,
+                levelsPlayed: user.levelsPlayed + (score > 0 ? 1 : 0)
+            };
+            setUser(updatedUser);
+            localStorage.setItem('neurofit_session', JSON.stringify(updatedUser));
+            setScreen('home');
+          };
 
-          if (screen === 'auth') {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center p-4">
+          if (screen === 'loading') return (
+            <div className="min-h-screen bg-purple-700 flex flex-col items-center justify-center text-white text-center">
+              <div className="text-6xl animate-pulse mb-4">🧠</div>
+              <h1 className="text-2xl font-bold">Cargando NeuroFit...</h1>
+            </div>
+          );
+
+          if (screen === 'auth') return (
+            <div className="min-h-screen bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center p-4">
                 <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center">
-                  <Brain />
-                  <h1 className="text-4xl font-bold text-purple-600 mb-6">NeuroFit</h1>
-                  <button onClick={handleRegister} className="w-full bg-purple-600 text-white py-4 rounded-xl font-bold text-xl hover:bg-purple-700 transition-all">
-                    Entrar como Invitado
-                  </button>
-                  <p className="mt-4 text-gray-500 text-sm">El sistema de usuarios está listo.</p>
+                    <Brain /><h1 className="text-4xl font-bold text-purple-600 mb-6">NeuroFit</h1>
+                    <button onClick={handleRegister} className="w-full bg-purple-600 text-white py-4 rounded-xl font-bold text-xl">Entrar ahora</button>
                 </div>
-              </div>
-            );
-          }
+            </div>
+          );
+
+          if (screen === 'game_memory') return <MemoryGame onComplete={handleGameComplete} />;
 
           return (
             <div className="min-h-screen bg-gray-100 p-4">
               <div className="max-w-4xl mx-auto">
                 <div className="bg-white rounded-3xl shadow-xl p-6 mb-6 flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Brain />
-                    <div className="ml-4">
-                      <h1 className="text-3xl font-black text-purple-600">NeuroFit</h1>
-                      <p className="text-gray-500">¡Hola, {user.username}!</p>
-                    </div>
-                  </div>
-                  <button onClick={() => {localStorage.clear(); window.location.reload();}} className="text-red-500 font-bold">Salir</button>
+                  <div className="flex items-center"><Brain /><div className="ml-4">
+                  <h1 className="text-3xl font-black text-purple-600 leading-tight">NeuroFit</h1>
+                  <p className="text-gray-500 font-medium">¡Hola, {user.username}!</p></div></div>
+                  <button onClick={() => {localStorage.clear(); window.location.reload();}} className="bg-red-50 text-red-500 px-4 py-2 rounded-xl font-bold">Salir</button>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 mb-8">
-                  <div className="bg-blue-100 p-4 rounded-2xl text-center">
-                    <Trophy />
-                    <p className="text-2xl font-bold text-blue-700">{user.totalScore}</p>
-                    <p className="text-xs text-blue-600">Puntos</p>
+                  <div className="bg-blue-50 p-4 rounded-2xl text-center border-b-4 border-blue-200">
+                    <Trophy /><p className="text-2xl font-bold text-blue-700">{user.totalScore}</p>
+                    <p className="text-xs font-bold text-blue-400 uppercase">Puntos</p>
                   </div>
-                  <div className="bg-green-100 p-4 rounded-2xl text-center">
-                    <Zap />
-                    <p className="text-2xl font-bold text-green-700">{user.streak}</p>
-                    <p className="text-xs text-green-600">Racha</p>
+                  <div className="bg-green-50 p-4 rounded-2xl text-center border-b-4 border-green-200">
+                    <Zap /><p className="text-2xl font-bold text-green-700">{user.streak}</p>
+                    <p className="text-xs font-bold text-green-400 uppercase">Racha</p>
                   </div>
-                  <div className="bg-purple-100 p-4 rounded-2xl text-center">
-                    <Star />
-                    <p className="text-2xl font-bold text-purple-700">{user.levelsPlayed}</p>
-                    <p className="text-xs text-purple-600">Niveles</p>
+                  <div className="bg-purple-50 p-4 rounded-2xl text-center border-b-4 border-purple-200">
+                    <Star /><p className="text-2xl font-bold text-purple-700">{user.levelsPlayed}</p>
+                    <p className="text-xs font-bold text-purple-400 uppercase">Niveles</p>
                   </div>
                 </div>
 
+                <h2 className="text-xl font-bold text-gray-700 mb-4 ml-2 text-center uppercase tracking-widest">Entrenamientos</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                  {['Memoria', 'Velocidad', 'Atención', 'Lenguaje', 'Lógica', 'Cálculo'].map((game) => (
-                    <div key={game} className="bg-white p-6 rounded-3xl shadow-md border-b-4 border-gray-200 flex flex-col items-center">
-                      <div className="text-4xl mb-2 opacity-50">🧩</div>
+                    <div onClick={() => setScreen('game_memory')} className="bg-white p-6 rounded-3xl shadow-md border-b-8 border-purple-500 hover:scale-105 transition-transform cursor-pointer flex flex-col items-center">
+                      <div className="text-4xl mb-2">🧠</div>
+                      <p className="font-bold text-gray-700">Memoria</p>
+                      <span className="text-xs text-green-500 font-bold">¡DESBLOQUEADO!</span>
+                    </div>
+                    {['Velocidad', 'Atención', 'Lenguaje', 'Lógica', 'Cálculo'].map((game) => (
+                    <div key={game} className="bg-white p-6 rounded-3xl shadow-md border-b-8 border-gray-200 opacity-60 flex flex-col items-center">
+                      <div className="text-4xl mb-2">🔒</div>
                       <p className="font-bold text-gray-700">{game}</p>
-                      <Lock />
                     </div>
                   ))}
                 </div>
