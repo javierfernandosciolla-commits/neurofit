@@ -36,8 +36,7 @@
             }, []);
             const handle = (i) => {
                 if (flipped.length === 2 || flipped.includes(i) || matched.includes(i)) return;
-                const newF = [...flipped, i];
-                setFlipped(newF);
+                const newF = [...flipped, i]; setFlipped(newF);
                 if (newF.length === 2) {
                     if (cards[newF[0]].s === cards[newF[1]].s) { setMatched([...matched, ...newF]); setFlipped([]); }
                     else { setTimeout(() => setFlipped([]), 700); }
@@ -63,14 +62,10 @@
             const colors = ['red', 'blue', 'green', 'yellow'];
             const start = (curr = []) => {
                 const n = colors[Math.floor(Math.random() * 4)];
-                const newS = [...curr, n];
-                setSeq(newS); setUserSeq([]); play(newS);
+                const newS = [...curr, n]; setSeq(newS); setUserSeq([]); play(newS);
             };
             const play = async (s) => {
-                for (let c of s) {
-                    await new Promise(r => setTimeout(r, 400)); setActive(c);
-                    await new Promise(r => setTimeout(r, 400)); setActive(null);
-                }
+                for (let c of s) { await new Promise(r => setTimeout(r, 400)); setActive(c); await new Promise(r => setTimeout(r, 400)); setActive(null); }
             };
             const click = (c) => {
                 setActive(c); setTimeout(() => setActive(null), 200);
@@ -118,36 +113,66 @@
             const [nums, setNums] = useState({ left: 0, right: 0 });
             const [score, setScore] = useState(0);
             const [time, setTime] = useState(45);
-            const [feedback, setFeedback] = useState(null);
-
-            const gen = () => {
-                setNums({ left: Math.floor(Math.random()*99)+1, right: Math.floor(Math.random()*99)+1 });
-                setFeedback(null);
-            };
-
+            const gen = () => { setNums({ left: Math.floor(Math.random()*99)+1, right: Math.floor(Math.random()*99)+1 }); };
             useEffect(() => {
                 gen();
                 const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000);
                 return () => clearInterval(t);
             }, []);
-
             const handle = (ans) => {
                 const corr = (ans === 'ma' && nums.left > nums.right) || (ans === 'me' && nums.left < nums.right) || (ans === 'ig' && nums.left === nums.right);
-                if (corr) { setScore(score + 100); setFeedback('✅'); } else { setFeedback('❌'); }
-                setTimeout(gen, 400);
+                if (corr) setScore(score + 100); setTimeout(gen, 400);
             };
-
             return (
                 <div className="p-4 text-center">
                     <div className="flex justify-between mb-4 font-bold text-cyan-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div>
                     <div className="flex justify-center gap-4 mb-6">
-                        <div className={`flex-1 p-6 rounded-2xl bg-purple-500 text-white text-5xl font-black ${feedback==='✅'?'ring-4 ring-green-400':''}`}>{nums.left}</div>
+                        <div className="flex-1 p-6 rounded-2xl bg-purple-500 text-white text-5xl font-black">{nums.left}</div>
                         <div className="flex-1 p-6 rounded-2xl bg-blue-500 text-white text-5xl font-black">{nums.right}</div>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                         <button onClick={() => handle('ma')} className="bg-green-500 text-white p-4 rounded-xl font-bold answer-btn">MAYOR</button>
                         <button onClick={() => handle('ig')} className="bg-yellow-500 text-white p-4 rounded-xl font-bold answer-btn">IGUAL</button>
                         <button onClick={() => handle('me')} className="bg-red-500 text-white p-4 rounded-xl font-bold answer-btn">MENOR</button>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- JUEGO: ENCUENTRA EL DIFERENTE (ATENCIÓN) ---
+        const AttentionGame = ({ onComplete }) => {
+            const [items, setItems] = useState([]);
+            const [diffIdx, setDiffIdx] = useState(null);
+            const [score, setScore] = useState(0);
+            const [round, setRound] = useState(1);
+            const [time, setTime] = useState(60);
+            const patterns = [
+                { b: '⬛', d: '⬜' }, { b: '🔷', d: '🔶' },
+                { b: '⭐', d: '✨' }, { b: '🌙', d: '☀️' },
+                { b: '🍎', d: '🍏' }, { b: '🐱', d: '🐶' }
+            ];
+            const gen = () => {
+                const n = Math.min(6 + Math.floor(round / 3), 12);
+                const p = patterns[Math.floor(Math.random() * patterns.length)];
+                const idx = Math.floor(Math.random() * n);
+                const its = Array(n).fill(p.b); its[idx] = p.d;
+                setItems(its); setDiffIdx(idx);
+            };
+            useEffect(() => {
+                gen();
+                const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000);
+                return () => clearInterval(t);
+            }, []);
+            const click = (i) => {
+                if (i === diffIdx) { setScore(score + 100 + (round * 20)); setRound(round + 1); gen(); }
+            };
+            return (
+                <div className="p-4 text-center">
+                    <div className="flex justify-between mb-4 font-bold text-orange-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div>
+                    <div className="grid grid-cols-3 gap-3">
+                        {items.map((it, i) => (
+                            <button key={i} onClick={() => click(i)} className="aspect-square bg-orange-100 rounded-2xl text-4xl shadow-sm hover:scale-105 transition-transform">{it}</button>
+                        ))}
                     </div>
                 </div>
             );
@@ -163,18 +188,15 @@
                 <div className="min-h-screen flex flex-col items-center p-4">
                     {screen === 'home' && (
                         <div className="w-full max-w-md">
-                            <div className="bg-white p-6 rounded-3xl shadow-lg mb-8 flex justify-between items-center">
-                                <div><p className="text-xs font-bold text-gray-400 uppercase tracking-tighter">Puntos</p><p className="text-2xl font-black text-purple-600">{user.points}</p></div>
+                            <div className="bg-white p-6 rounded-3xl shadow-lg mb-8 flex justify-between items-center text-center">
+                                <div><p className="text-xs font-bold text-gray-400 uppercase">Puntos</p><p className="text-2xl font-black text-purple-600">{user.points}</p></div>
                                 <BrainIcon />
-                                <div><p className="text-xs font-bold text-gray-400 uppercase tracking-tighter">Niveles</p><p className="text-2xl font-black text-blue-600">{user.levels}</p></div>
+                                <div><p className="text-xs font-bold text-gray-400 uppercase">Niveles</p><p className="text-2xl font-black text-blue-600">{user.levels}</p></div>
                             </div>
                             <div className="space-y-4">
-                                <div onClick={() => setScreen('mem_sel')} className="game-btn bg-white p-6 rounded-3xl shadow border-b-8 border-purple-500 flex items-center">
-                                    <span className="text-4xl mr-4">🧩</span><p className="font-black text-gray-700 uppercase">Memoria</p>
-                                </div>
-                                <div onClick={() => setScreen('spd_sel')} className="game-btn bg-white p-6 rounded-3xl shadow border-b-8 border-blue-500 flex items-center">
-                                    <span className="text-4xl mr-4">⚡</span><p className="font-black text-gray-700 uppercase">Velocidad</p>
-                                </div>
+                                <div onClick={() => setScreen('mem_sel')} className="game-btn bg-white p-6 rounded-3xl shadow border-b-8 border-purple-500 flex items-center"><span className="text-4xl mr-4">🧩</span><p className="font-black text-gray-700 uppercase">Memoria</p></div>
+                                <div onClick={() => setScreen('spd_sel')} className="game-btn bg-white p-6 rounded-3xl shadow border-b-8 border-blue-500 flex items-center"><span className="text-4xl mr-4">⚡</span><p className="font-black text-gray-700 uppercase">Velocidad</p></div>
+                                <div onClick={() => setScreen('g_att')} className="game-btn bg-white p-6 rounded-3xl shadow border-b-8 border-orange-500 flex items-center"><span className="text-4xl mr-4">👁️</span><p className="font-black text-gray-700 uppercase">Atención</p></div>
                             </div>
                         </div>
                     )}
@@ -184,15 +206,9 @@
                             <h2 className="text-xl font-black mb-6 uppercase tracking-widest">Seleccionar Juego</h2>
                             <div className="grid gap-3">
                                 {screen === 'mem_sel' ? (
-                                    <React.Fragment>
-                                        <button onClick={() => setScreen('g_pairs')} className="bg-purple-100 text-purple-700 p-4 rounded-2xl font-bold">PARES DE CARTAS</button>
-                                        <button onClick={() => setScreen('g_simon')} className="bg-pink-100 text-pink-700 p-4 rounded-2xl font-bold">SECUENCIA SIMON</button>
-                                    </React.Fragment>
+                                    <React.Fragment><button onClick={() => setScreen('g_pairs')} className="bg-purple-100 text-purple-700 p-4 rounded-2xl font-bold">PARES DE CARTAS</button><button onClick={() => setScreen('g_simon')} className="bg-pink-100 text-pink-700 p-4 rounded-2xl font-bold">SECUENCIA SIMON</button></React.Fragment>
                                 ) : (
-                                    <React.Fragment>
-                                        <button onClick={() => setScreen('g_calc')} className="bg-blue-100 text-blue-700 p-4 rounded-2xl font-bold">CÁLCULO RÁPIDO</button>
-                                        <button onClick={() => setScreen('g_comp')} className="bg-cyan-100 text-cyan-700 p-4 rounded-2xl font-bold">COMPARACIÓN RÁPIDA</button>
-                                    </React.Fragment>
+                                    <React.Fragment><button onClick={() => setScreen('g_calc')} className="bg-blue-100 text-blue-700 p-4 rounded-2xl font-bold">CÁLCULO RÁPIDO</button><button onClick={() => setScreen('g_comp')} className="bg-cyan-100 text-cyan-700 p-4 rounded-2xl font-bold">COMPARACIÓN RÁPIDA</button></React.Fragment>
                                 )}
                                 <button onClick={() => setScreen('home')} className="mt-4 text-gray-400 font-bold">VOLVER</button>
                             </div>
@@ -204,6 +220,7 @@
                         {screen === 'g_simon' && <Memory2Game onComplete={finish} />}
                         {screen === 'g_calc' && <SpeedGame onComplete={finish} />}
                         {screen === 'g_comp' && <Speed2Game onComplete={finish} />}
+                        {screen === 'g_att' && <AttentionGame onComplete={finish} />}
                         {screen.startsWith('g_') && <button onClick={() => setScreen('home')} className="w-full py-4 text-xs font-bold text-gray-300 border-t border-gray-50 uppercase tracking-widest">Abandonar</button>}
                     </div>
                 </div>
@@ -214,4 +231,4 @@
         root.render(<App />);
     </script>
 </body>
-</html>
+</html>   
