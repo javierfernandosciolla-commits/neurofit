@@ -12,8 +12,8 @@
         body { margin: 0; font-family: sans-serif; background-color: #f8fafc; }
         .game-btn { transition: all 0.2s; cursor: pointer; }
         .game-btn:hover { transform: translateY(-4px); }
-        .simon-btn { transition: all 0.1s; }
-        .simon-btn:active { transform: scale(0.95); opacity: 1 !important; }
+        .answer-btn { transition: transform 0.1s; }
+        .answer-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -22,155 +22,133 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- ICONO CEREBRO ---
+        // --- ICONOS ---
         const BrainIcon = () => <span className="text-4xl mb-2">🧠</span>;
 
-        // --- JUEGO 1: PARES DE CARTAS ---
+        // --- JUEGO: PARES DE CARTAS ---
         const MemoryGame = ({ onComplete }) => {
             const [cards, setCards] = useState([]);
             const [flipped, setFlipped] = useState([]);
             const [matched, setMatched] = useState([]);
-            const [moves, setMoves] = useState(0);
             const symbols = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍒'];
-
             useEffect(() => {
-                const gameCards = [...symbols, ...symbols]
-                    .sort(() => Math.random() - 0.5)
-                    .map((symbol, index) => ({ id: index, symbol }));
-                setCards(gameCards);
+                setCards([...symbols, ...symbols].sort(() => Math.random() - 0.5).map((s, i) => ({ id: i, s })));
             }, []);
-
-            const handleCardClick = (i) => {
+            const handle = (i) => {
                 if (flipped.length === 2 || flipped.includes(i) || matched.includes(i)) return;
-                const newFlipped = [...flipped, i];
-                setFlipped(newFlipped);
-                if (newFlipped.length === 2) {
-                    setMoves(moves + 1);
-                    if (cards[newFlipped[0]].symbol === cards[newFlipped[1]].symbol) {
-                        setMatched([...matched, ...newFlipped]);
-                        setFlipped([]);
-                    } else {
-                        setTimeout(() => setFlipped([]), 700);
-                    }
+                const newF = [...flipped, i];
+                setFlipped(newF);
+                if (newF.length === 2) {
+                    if (cards[newF[0]].s === cards[newF[1]].s) { setMatched([...matched, ...newF]); setFlipped([]); }
+                    else { setTimeout(() => setFlipped([]), 700); }
                 }
             };
-
-            useEffect(() => {
-                if (matched.length === 12) onComplete(800);
-            }, [matched]);
-
+            useEffect(() => { if (matched.length === 12) onComplete(800); }, [matched]);
             return (
-                <div className="p-4 text-center">
-                    <h3 className="font-bold mb-4 text-purple-600">Encuentra los Pares</h3>
-                    <div className="grid grid-cols-4 gap-2">
-                        {cards.map((card, i) => (
-                            <div key={i} onClick={() => handleCardClick(i)} 
-                                className={`h-16 w-16 rounded-xl flex items-center justify-center text-2xl shadow cursor-pointer ${flipped.includes(i) || matched.includes(i) ? 'bg-white border-2 border-purple-400' : 'bg-purple-500 text-white font-bold'}`}>
-                                {flipped.includes(i) || matched.includes(i) ? card.symbol : '?'}
-                            </div>
-                        ))}
-                    </div>
+                <div className="p-4 grid grid-cols-4 gap-2">
+                    {cards.map((c, i) => (
+                        <div key={i} onClick={() => handle(i)} className={`h-16 rounded-xl flex items-center justify-center text-2xl shadow cursor-pointer ${flipped.includes(i) || matched.includes(i) ? 'bg-white border-2 border-purple-400' : 'bg-purple-500 text-white font-bold'}`}>
+                            {flipped.includes(i) || matched.includes(i) ? c.s : '?'}
+                        </div>
+                    ))}
                 </div>
             );
         };
 
-        // --- JUEGO 2: SIMON ---
+        // --- JUEGO: SIMON ---
         const Memory2Game = ({ onComplete }) => {
-            const [sequence, setSequence] = useState([]);
-            const [userSequence, setUserSequence] = useState([]);
-            const [isPlaying, setIsPlaying] = useState(false);
-            const [activeColor, setActiveColor] = useState(null);
-            const [round, setRound] = useState(1);
+            const [seq, setSeq] = useState([]);
+            const [userSeq, setUserSeq] = useState([]);
+            const [active, setActive] = useState(null);
             const colors = ['red', 'blue', 'green', 'yellow'];
-
-            const startRound = (curr = []) => {
-                const next = colors[Math.floor(Math.random() * 4)];
-                const newSeq = [...curr, next];
-                setSequence(newSeq);
-                setUserSequence([]);
-                play(newSeq);
+            const start = (curr = []) => {
+                const n = colors[Math.floor(Math.random() * 4)];
+                const newS = [...curr, n];
+                setSeq(newS); setUserSeq([]); play(newS);
             };
-
-            const play = async (seq) => {
-                setIsPlaying(true);
-                for (let c of seq) {
-                    await new Promise(r => setTimeout(r, 500));
-                    setActiveColor(c);
-                    await new Promise(r => setTimeout(r, 500));
-                    setActiveColor(null);
-                }
-                setIsPlaying(false);
-            };
-
-            const handleClick = (c) => {
-                if (isPlaying) return;
-                setActiveColor(c);
-                setTimeout(() => setActiveColor(null), 200);
-                const nextUserSeq = [...userSequence, c];
-                setUserSequence(nextUserSeq);
-
-                if (c !== sequence[nextUserSeq.length - 1]) {
-                    onComplete((round - 1) * 200);
-                    return;
-                }
-                if (nextUserSeq.length === sequence.length) {
-                    setRound(round + 1);
-                    setTimeout(() => startRound(sequence), 1000);
+            const play = async (s) => {
+                for (let c of s) {
+                    await new Promise(r => setTimeout(r, 400)); setActive(c);
+                    await new Promise(r => setTimeout(r, 400)); setActive(null);
                 }
             };
-
-            useEffect(() => { startRound(); }, []);
-
+            const click = (c) => {
+                setActive(c); setTimeout(() => setActive(null), 200);
+                const next = [...userSeq, c]; setUserSeq(next);
+                if (c !== seq[next.length - 1]) { onComplete((seq.length - 1) * 200); return; }
+                if (next.length === seq.length) setTimeout(() => start(seq), 800);
+            };
+            useEffect(() => start(), []);
             return (
-                <div className="p-4 flex flex-col items-center">
-                    <div className="bg-gray-100 px-4 py-1 rounded-full mb-4 font-bold text-sm">NIVEL {round}</div>
-                    <div className="grid grid-cols-2 gap-3">
-                        {colors.map(c => (
-                            <button key={c} onClick={() => handleClick(c)} 
-                                className={`h-24 w-24 rounded-2xl simon-btn ${activeColor === c ? 'brightness-125' : 'opacity-60'} ${
-                                    c === 'red' ? 'bg-red-500' : c === 'blue' ? 'bg-blue-500' : c === 'green' ? 'bg-green-500' : 'bg-yellow-400'
-                                }`}
-                            />
-                        ))}
-                    </div>
+                <div className="p-6 grid grid-cols-2 gap-4">
+                    {colors.map(c => <div key={c} onClick={() => click(c)} className={`h-24 w-24 rounded-full shadow-lg ${active === c ? 'brightness-150 scale-105' : 'opacity-70'} ${c === 'red' ? 'bg-red-500' : c === 'blue' ? 'bg-blue-500' : c === 'green' ? 'bg-green-500' : 'bg-yellow-400'}`} />)}
                 </div>
             );
         };
 
-        // --- JUEGO 3: VELOCIDAD ---
+        // --- JUEGO: CÁLCULO RÁPIDO ---
         const SpeedGame = ({ onComplete }) => {
             const [q, setQ] = useState(null);
             const [score, setScore] = useState(0);
-            const [timeLeft, setTimeLeft] = useState(30);
+            const [time, setTime] = useState(30);
+            const gen = () => {
+                const n1 = Math.floor(Math.random()*20)+5;
+                const n2 = Math.floor(Math.random()*20)+5;
+                const ans = n1 + n2;
+                setQ({n1, n2, ans, alt: [ans, ans+2, ans-3].sort(() => Math.random()-0.5)});
+            };
+            useEffect(() => {
+                gen();
+                const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000);
+                return () => clearInterval(t);
+            }, []);
+            return (
+                <div className="p-6 text-center">
+                    <div className="flex justify-between mb-4 font-bold text-blue-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div>
+                    {q && <div>
+                        <div className="text-5xl font-black mb-6">{q.n1}+{q.n2}</div>
+                        <div className="grid gap-2">{q.alt.map(a => <button key={a} onClick={() => { if(a===q.ans) setScore(score+100); gen(); }} className="bg-blue-500 text-white py-4 rounded-xl font-bold">{a}</button>)}</div>
+                    </div>}
+                </div>
+            );
+        };
+
+        // --- JUEGO: COMPARACIÓN RÁPIDA ---
+        const Speed2Game = ({ onComplete }) => {
+            const [nums, setNums] = useState({ left: 0, right: 0 });
+            const [score, setScore] = useState(0);
+            const [time, setTime] = useState(45);
+            const [feedback, setFeedback] = useState(null);
 
             const gen = () => {
-                const n1 = Math.floor(Math.random()*15)+1;
-                const n2 = Math.floor(Math.random()*15)+1;
-                const ans = n1 + n2;
-                const alt = [ans, ans+2, ans-1].sort(() => Math.random()-0.5);
-                setQ({n1, n2, ans, alt});
+                setNums({ left: Math.floor(Math.random()*99)+1, right: Math.floor(Math.random()*99)+1 });
+                setFeedback(null);
             };
 
             useEffect(() => {
                 gen();
-                const t = setInterval(() => setTimeLeft(p => {
-                    if(p <= 1) { clearInterval(t); onComplete(score); }
-                    return p - 1;
-                }), 1000);
+                const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000);
                 return () => clearInterval(t);
             }, []);
 
+            const handle = (ans) => {
+                const corr = (ans === 'ma' && nums.left > nums.right) || (ans === 'me' && nums.left < nums.right) || (ans === 'ig' && nums.left === nums.right);
+                if (corr) { setScore(score + 100); setFeedback('✅'); } else { setFeedback('❌'); }
+                setTimeout(gen, 400);
+            };
+
             return (
-                <div className="p-6 text-center">
-                    <div className="flex justify-between mb-4 font-bold"><span>⏱️ {timeLeft}s</span><span>⭐ {score}</span></div>
-                    {q && (
-                        <div>
-                            <div className="text-4xl font-black mb-6">{q.n1} + {q.n2}</div>
-                            <div className="grid gap-2">
-                                {q.alt.map(a => <button key={a} onClick={() => { if(a===q.ans) setScore(score+100); gen(); }} className="bg-blue-500 text-white py-4 rounded-xl font-bold">{a}</button>)}
-                            </div>
-                        </div>
-                    )}
+                <div className="p-4 text-center">
+                    <div className="flex justify-between mb-4 font-bold text-cyan-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div>
+                    <div className="flex justify-center gap-4 mb-6">
+                        <div className={`flex-1 p-6 rounded-2xl bg-purple-500 text-white text-5xl font-black ${feedback==='✅'?'ring-4 ring-green-400':''}`}>{nums.left}</div>
+                        <div className="flex-1 p-6 rounded-2xl bg-blue-500 text-white text-5xl font-black">{nums.right}</div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                        <button onClick={() => handle('ma')} className="bg-green-500 text-white p-4 rounded-xl font-bold answer-btn">MAYOR</button>
+                        <button onClick={() => handle('ig')} className="bg-yellow-500 text-white p-4 rounded-xl font-bold answer-btn">IGUAL</button>
+                        <button onClick={() => handle('me')} className="bg-red-500 text-white p-4 rounded-xl font-bold answer-btn">MENOR</button>
+                    </div>
                 </div>
             );
         };
@@ -179,50 +157,54 @@
         const App = () => {
             const [screen, setScreen] = useState('home');
             const [user, setUser] = useState({ points: 0, levels: 0 });
-
-            const finish = (p) => {
-                setUser(prev => ({ points: prev.points + p, levels: prev.levels + 1 }));
-                setScreen('home');
-            };
+            const finish = (p) => { setUser(prev => ({ points: prev.points + p, levels: prev.levels + 1 })); setScreen('home'); };
 
             return (
                 <div className="min-h-screen flex flex-col items-center p-4">
                     {screen === 'home' && (
                         <div className="w-full max-w-md">
                             <div className="bg-white p-6 rounded-3xl shadow-lg mb-8 flex justify-between items-center">
-                                <div><p className="text-xs font-bold text-gray-400 uppercase">Puntos</p><p className="text-2xl font-black text-purple-600">{user.points}</p></div>
+                                <div><p className="text-xs font-bold text-gray-400 uppercase tracking-tighter">Puntos</p><p className="text-2xl font-black text-purple-600">{user.points}</p></div>
                                 <BrainIcon />
-                                <div><p className="text-xs font-bold text-gray-400 uppercase">Niveles</p><p className="text-2xl font-black text-blue-600">{user.levels}</p></div>
+                                <div><p className="text-xs font-bold text-gray-400 uppercase tracking-tighter">Niveles</p><p className="text-2xl font-black text-blue-600">{user.levels}</p></div>
                             </div>
                             <div className="space-y-4">
-                                <div onClick={() => setScreen('memory_sel')} className="game-btn bg-white p-6 rounded-3xl shadow border-b-8 border-purple-500 flex items-center">
-                                    <span className="text-4xl mr-4">🧩</span><p className="font-black text-gray-700">MEMORIA</p>
+                                <div onClick={() => setScreen('mem_sel')} className="game-btn bg-white p-6 rounded-3xl shadow border-b-8 border-purple-500 flex items-center">
+                                    <span className="text-4xl mr-4">🧩</span><p className="font-black text-gray-700 uppercase">Memoria</p>
                                 </div>
-                                <div onClick={() => setScreen('game_speed')} className="game-btn bg-white p-6 rounded-3xl shadow border-b-8 border-blue-500 flex items-center">
-                                    <span className="text-4xl mr-4">⚡</span><p className="font-black text-gray-700">VELOCIDAD</p>
+                                <div onClick={() => setScreen('spd_sel')} className="game-btn bg-white p-6 rounded-3xl shadow border-b-8 border-blue-500 flex items-center">
+                                    <span className="text-4xl mr-4">⚡</span><p className="font-black text-gray-700 uppercase">Velocidad</p>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {screen === 'memory_sel' && (
+                    {(screen === 'mem_sel' || screen === 'spd_sel') && (
                         <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl text-center">
-                            <h2 className="text-xl font-black mb-6">ELIGE UN MODO</h2>
-                            <button onClick={() => setScreen('game_pairs')} className="w-full bg-purple-100 text-purple-700 p-4 rounded-2xl font-bold mb-3">PARES DE CARTAS</button>
-                            <button onClick={() => setScreen('game_simon')} className="w-full bg-pink-100 text-pink-700 p-4 rounded-2xl font-bold mb-6">SECUENCIA SIMON</button>
-                            <button onClick={() => setScreen('home')} className="text-gray-400 font-bold">VOLVER</button>
+                            <h2 className="text-xl font-black mb-6 uppercase tracking-widest">Seleccionar Juego</h2>
+                            <div className="grid gap-3">
+                                {screen === 'mem_sel' ? (
+                                    <React.Fragment>
+                                        <button onClick={() => setScreen('g_pairs')} className="bg-purple-100 text-purple-700 p-4 rounded-2xl font-bold">PARES DE CARTAS</button>
+                                        <button onClick={() => setScreen('g_simon')} className="bg-pink-100 text-pink-700 p-4 rounded-2xl font-bold">SECUENCIA SIMON</button>
+                                    </React.Fragment>
+                                ) : (
+                                    <React.Fragment>
+                                        <button onClick={() => setScreen('g_calc')} className="bg-blue-100 text-blue-700 p-4 rounded-2xl font-bold">CÁLCULO RÁPIDO</button>
+                                        <button onClick={() => setScreen('g_comp')} className="bg-cyan-100 text-cyan-700 p-4 rounded-2xl font-bold">COMPARACIÓN RÁPIDA</button>
+                                    </React.Fragment>
+                                )}
+                                <button onClick={() => setScreen('home')} className="mt-4 text-gray-400 font-bold">VOLVER</button>
+                            </div>
                         </div>
                     )}
 
-                    {/* ACA ESTABA EL ERROR: Ahora sí mostramos los componentes según la pantalla */}
                     <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden mt-4">
-                        {screen === 'game_pairs' && <MemoryGame onComplete={finish} />}
-                        {screen === 'game_simon' && <Memory2Game onComplete={finish} />}
-                        {screen === 'game_speed' && <SpeedGame onComplete={finish} />}
-                        
-                        {(screen.startsWith('game_')) && (
-                            <button onClick={() => setScreen('home')} className="w-full py-4 text-xs font-bold text-gray-300 border-t border-gray-50 uppercase tracking-widest">Abandonar Partida</button>
-                        )}
+                        {screen === 'g_pairs' && <MemoryGame onComplete={finish} />}
+                        {screen === 'g_simon' && <Memory2Game onComplete={finish} />}
+                        {screen === 'g_calc' && <SpeedGame onComplete={finish} />}
+                        {screen === 'g_comp' && <Speed2Game onComplete={finish} />}
+                        {screen.startsWith('g_') && <button onClick={() => setScreen('home')} className="w-full py-4 text-xs font-bold text-gray-300 border-t border-gray-50 uppercase tracking-widest">Abandonar</button>}
                     </div>
                 </div>
             );
