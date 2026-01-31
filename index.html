@@ -25,15 +25,13 @@
         // --- ICONOS ---
         const BrainIcon = () => <span className="text-4xl mb-2">🧠</span>;
 
-        // --- JUEGO: PARES DE CARTAS ---
+        // --- JUEGOS DE MEMORIA ---
         const MemoryGame = ({ onComplete }) => {
             const [cards, setCards] = useState([]);
             const [flipped, setFlipped] = useState([]);
             const [matched, setMatched] = useState([]);
             const symbols = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍒'];
-            useEffect(() => {
-                setCards([...symbols, ...symbols].sort(() => Math.random() - 0.5).map((s, i) => ({ id: i, s })));
-            }, []);
+            useEffect(() => { setCards([...symbols, ...symbols].sort(() => Math.random() - 0.5).map((s, i) => ({ id: i, s }))); }, []);
             const handle = (i) => {
                 if (flipped.length === 2 || flipped.includes(i) || matched.includes(i)) return;
                 const newF = [...flipped, i]; setFlipped(newF);
@@ -43,136 +41,74 @@
                 }
             };
             useEffect(() => { if (matched.length === 12) onComplete(800); }, [matched]);
-            return (
-                <div className="p-4 grid grid-cols-4 gap-2">
-                    {cards.map((c, i) => (
-                        <div key={i} onClick={() => handle(i)} className={`h-16 rounded-xl flex items-center justify-center text-2xl shadow cursor-pointer ${flipped.includes(i) || matched.includes(i) ? 'bg-white border-2 border-purple-400' : 'bg-purple-500 text-white font-bold'}`}>
-                            {flipped.includes(i) || matched.includes(i) ? c.s : '?'}
-                        </div>
-                    ))}
-                </div>
-            );
+            return ( <div className="p-4 grid grid-cols-4 gap-2">{cards.map((c, i) => ( <div key={i} onClick={() => handle(i)} className={`h-16 rounded-xl flex items-center justify-center text-2xl shadow cursor-pointer ${flipped.includes(i) || matched.includes(i) ? 'bg-white border-2 border-purple-400' : 'bg-purple-500 text-white font-bold'}`}>{flipped.includes(i) || matched.includes(i) ? c.s : '?'}</div> ))}</div> );
         };
 
-        // --- JUEGO: SIMON ---
         const Memory2Game = ({ onComplete }) => {
             const [seq, setSeq] = useState([]);
             const [userSeq, setUserSeq] = useState([]);
             const [active, setActive] = useState(null);
             const colors = ['red', 'blue', 'green', 'yellow'];
-            const start = (curr = []) => {
-                const n = colors[Math.floor(Math.random() * 4)];
-                const newS = [...curr, n]; setSeq(newS); setUserSeq([]); play(newS);
-            };
-            const play = async (s) => {
-                for (let c of s) { await new Promise(r => setTimeout(r, 400)); setActive(c); await new Promise(r => setTimeout(r, 400)); setActive(null); }
-            };
-            const click = (c) => {
-                setActive(c); setTimeout(() => setActive(null), 200);
-                const next = [...userSeq, c]; setUserSeq(next);
-                if (c !== seq[next.length - 1]) { onComplete((seq.length - 1) * 200); return; }
-                if (next.length === seq.length) setTimeout(() => start(seq), 800);
-            };
+            const start = (curr = []) => { const n = colors[Math.floor(Math.random() * 4)]; const newS = [...curr, n]; setSeq(newS); setUserSeq([]); play(newS); };
+            const play = async (s) => { for (let c of s) { await new Promise(r => setTimeout(r, 400)); setActive(c); await new Promise(r => setTimeout(r, 400)); setActive(null); } };
+            const click = (c) => { setActive(c); setTimeout(() => setActive(null), 200); const next = [...userSeq, c]; setUserSeq(next); if (c !== seq[next.length - 1]) { onComplete((seq.length - 1) * 200); return; } if (next.length === seq.length) setTimeout(() => start(seq), 800); };
             useEffect(() => start(), []);
-            return (
-                <div className="p-6 grid grid-cols-2 gap-4">
-                    {colors.map(c => <div key={c} onClick={() => click(c)} className={`h-24 w-24 rounded-full shadow-lg ${active === c ? 'brightness-150 scale-105' : 'opacity-70'} ${c === 'red' ? 'bg-red-500' : c === 'blue' ? 'bg-blue-500' : c === 'green' ? 'bg-green-500' : 'bg-yellow-400'}`} />)}
-                </div>
-            );
+            return ( <div className="p-6 grid grid-cols-2 gap-4">{colors.map(c => <div key={c} onClick={() => click(c)} className={`h-24 w-24 rounded-full shadow-lg ${active === c ? 'brightness-150 scale-105' : 'opacity-70'} ${c === 'red' ? 'bg-red-500' : c === 'blue' ? 'bg-blue-500' : c === 'green' ? 'bg-green-500' : 'bg-yellow-400'}`} />)}</div> );
         };
 
-        // --- JUEGO: CÁLCULO RÁPIDO ---
+        // --- JUEGOS DE VELOCIDAD ---
         const SpeedGame = ({ onComplete }) => {
             const [q, setQ] = useState(null);
             const [score, setScore] = useState(0);
             const [time, setTime] = useState(30);
-            const gen = () => {
-                const n1 = Math.floor(Math.random()*20)+5;
-                const n2 = Math.floor(Math.random()*20)+5;
-                const ans = n1 + n2;
-                setQ({n1, n2, ans, alt: [ans, ans+2, ans-3].sort(() => Math.random()-0.5)});
-            };
-            useEffect(() => {
-                gen();
-                const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000);
-                return () => clearInterval(t);
-            }, []);
-            return (
-                <div className="p-6 text-center">
-                    <div className="flex justify-between mb-4 font-bold text-blue-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div>
-                    {q && <div>
-                        <div className="text-5xl font-black mb-6">{q.n1}+{q.n2}</div>
-                        <div className="grid gap-2">{q.alt.map(a => <button key={a} onClick={() => { if(a===q.ans) setScore(score+100); gen(); }} className="bg-blue-500 text-white py-4 rounded-xl font-bold">{a}</button>)}</div>
-                    </div>}
-                </div>
-            );
+            const gen = () => { const n1 = Math.floor(Math.random()*20)+5; const n2 = Math.floor(Math.random()*20)+5; const ans = n1 + n2; setQ({n1, n2, ans, alt: [ans, ans+2, ans-3].sort(() => Math.random()-0.5)}); };
+            useEffect(() => { gen(); const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000); return () => clearInterval(t); }, []);
+            return ( <div className="p-6 text-center"><div className="flex justify-between mb-4 font-bold text-blue-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div>{q && <div><div className="text-5xl font-black mb-6">{q.n1}+{q.n2}</div><div className="grid gap-2">{q.alt.map(a => <button key={a} onClick={() => { if(a===q.ans) setScore(score+100); gen(); }} className="bg-blue-500 text-white py-4 rounded-xl font-bold">{a}</button>)}</div></div>}</div> );
         };
 
-        // --- JUEGO: COMPARACIÓN RÁPIDA ---
         const Speed2Game = ({ onComplete }) => {
             const [nums, setNums] = useState({ left: 0, right: 0 });
             const [score, setScore] = useState(0);
             const [time, setTime] = useState(45);
             const gen = () => { setNums({ left: Math.floor(Math.random()*99)+1, right: Math.floor(Math.random()*99)+1 }); };
-            useEffect(() => {
-                gen();
-                const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000);
-                return () => clearInterval(t);
-            }, []);
-            const handle = (ans) => {
-                const corr = (ans === 'ma' && nums.left > nums.right) || (ans === 'me' && nums.left < nums.right) || (ans === 'ig' && nums.left === nums.right);
-                if (corr) setScore(score + 100); setTimeout(gen, 400);
-            };
-            return (
-                <div className="p-4 text-center">
-                    <div className="flex justify-between mb-4 font-bold text-cyan-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div>
-                    <div className="flex justify-center gap-4 mb-6">
-                        <div className="flex-1 p-6 rounded-2xl bg-purple-500 text-white text-5xl font-black">{nums.left}</div>
-                        <div className="flex-1 p-6 rounded-2xl bg-blue-500 text-white text-5xl font-black">{nums.right}</div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                        <button onClick={() => handle('ma')} className="bg-green-500 text-white p-4 rounded-xl font-bold answer-btn">MAYOR</button>
-                        <button onClick={() => handle('ig')} className="bg-yellow-500 text-white p-4 rounded-xl font-bold answer-btn">IGUAL</button>
-                        <button onClick={() => handle('me')} className="bg-red-500 text-white p-4 rounded-xl font-bold answer-btn">MENOR</button>
-                    </div>
-                </div>
-            );
+            useEffect(() => { gen(); const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000); return () => clearInterval(t); }, []);
+            const handle = (ans) => { const corr = (ans === 'ma' && nums.left > nums.right) || (ans === 'me' && nums.left < nums.right) || (ans === 'ig' && nums.left === nums.right); if (corr) setScore(score + 100); setTimeout(gen, 400); };
+            return ( <div className="p-4 text-center"><div className="flex justify-between mb-4 font-bold text-cyan-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div><div className="flex justify-center gap-4 mb-6"><div className="flex-1 p-6 rounded-2xl bg-purple-500 text-white text-5xl font-black">{nums.left}</div><div className="flex-1 p-6 rounded-2xl bg-blue-500 text-white text-5xl font-black">{nums.right}</div></div><div className="grid grid-cols-3 gap-2"><button onClick={() => handle('ma')} className="bg-green-500 text-white p-4 rounded-xl font-bold answer-btn">MAYOR</button><button onClick={() => handle('ig')} className="bg-yellow-500 text-white p-4 rounded-xl font-bold answer-btn">IGUAL</button><button onClick={() => handle('me')} className="bg-red-500 text-white p-4 rounded-xl font-bold answer-btn">MENOR</button></div></div> );
         };
 
-        // --- JUEGO: ENCUENTRA EL DIFERENTE (ATENCIÓN) ---
+        // --- JUEGOS DE ATENCIÓN ---
         const AttentionGame = ({ onComplete }) => {
             const [items, setItems] = useState([]);
             const [diffIdx, setDiffIdx] = useState(null);
             const [score, setScore] = useState(0);
             const [round, setRound] = useState(1);
             const [time, setTime] = useState(60);
-            const patterns = [
-                { b: '⬛', d: '⬜' }, { b: '🔷', d: '🔶' },
-                { b: '⭐', d: '✨' }, { b: '🌙', d: '☀️' },
-                { b: '🍎', d: '🍏' }, { b: '🐱', d: '🐶' }
-            ];
-            const gen = () => {
-                const n = Math.min(6 + Math.floor(round / 3), 12);
-                const p = patterns[Math.floor(Math.random() * patterns.length)];
-                const idx = Math.floor(Math.random() * n);
-                const its = Array(n).fill(p.b); its[idx] = p.d;
-                setItems(its); setDiffIdx(idx);
-            };
-            useEffect(() => {
-                gen();
-                const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000);
-                return () => clearInterval(t);
-            }, []);
-            const click = (i) => {
-                if (i === diffIdx) { setScore(score + 100 + (round * 20)); setRound(round + 1); gen(); }
-            };
+            const patterns = [{ b: '⬛', d: '⬜' }, { b: '🔷', d: '🔶' }, { b: '⭐', d: '✨' }, { b: '🌙', d: '☀️' }];
+            const gen = () => { const n = Math.min(6 + Math.floor(round / 3), 12); const p = patterns[Math.floor(Math.random() * patterns.length)]; const idx = Math.floor(Math.random() * n); const its = Array(n).fill(p.b); its[idx] = p.d; setItems(its); setDiffIdx(idx); };
+            useEffect(() => { gen(); const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000); return () => clearInterval(t); }, []);
+            const click = (i) => { if (i === diffIdx) { setScore(score + 100 + (round * 20)); setRound(round + 1); gen(); } };
+            return ( <div className="p-4 text-center"><div className="flex justify-between mb-4 font-bold text-orange-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div><div className="grid grid-cols-3 gap-3">{items.map((it, i) => ( <button key={i} onClick={() => click(i)} className="aspect-square bg-orange-100 rounded-2xl text-4xl shadow-sm hover:scale-105 transition-transform">{it}</button> ))}</div></div> );
+        };
+
+        const Attention2Game = ({ onComplete }) => {
+            const [word, setWord] = useState({ text: '', color: '' });
+            const [score, setScore] = useState(0);
+            const [time, setTime] = useState(60);
+            const colorWords = ['ROJO', 'AZUL', 'VERDE', 'AMARILLO'];
+            const colors = ['red', 'blue', 'green', '#eab308'];
+            const colorMap = { red: 'ROJO', blue: 'AZUL', green: 'VERDE', '#eab308': 'AMARILLO' };
+            const gen = () => { setWord({ text: colorWords[Math.floor(Math.random() * 4)], color: colors[Math.floor(Math.random() * 4)] }); };
+            useEffect(() => { gen(); const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000); return () => clearInterval(t); }, []);
+            const handle = (ans) => { if (ans === colorMap[word.color]) setScore(score + 150); gen(); };
             return (
                 <div className="p-4 text-center">
-                    <div className="flex justify-between mb-4 font-bold text-orange-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div>
-                    <div className="grid grid-cols-3 gap-3">
-                        {items.map((it, i) => (
-                            <button key={i} onClick={() => click(i)} className="aspect-square bg-orange-100 rounded-2xl text-4xl shadow-sm hover:scale-105 transition-transform">{it}</button>
-                        ))}
+                    <div className="flex justify-between mb-4 font-bold text-rose-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div>
+                    <p className="text-xs font-bold text-gray-400 mb-4 uppercase">Presiona el COLOR de la tinta</p>
+                    <div className="bg-gray-50 rounded-2xl p-10 mb-6 flex justify-center items-center h-40">
+                        <span className="text-6xl font-black" style={{ color: word.color }}>{word.text}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        {colorWords.map(c => <button key={c} onClick={() => handle(c)} className="bg-indigo-500 text-white py-4 rounded-xl font-bold answer-btn">{c}</button>)}
                     </div>
                 </div>
             );
@@ -194,22 +130,20 @@
                                 <div><p className="text-xs font-bold text-gray-400 uppercase">Niveles</p><p className="text-2xl font-black text-blue-600">{user.levels}</p></div>
                             </div>
                             <div className="space-y-4">
-                                <div onClick={() => setScreen('mem_sel')} className="game-btn bg-white p-6 rounded-3xl shadow border-b-8 border-purple-500 flex items-center"><span className="text-4xl mr-4">🧩</span><p className="font-black text-gray-700 uppercase">Memoria</p></div>
-                                <div onClick={() => setScreen('spd_sel')} className="game-btn bg-white p-6 rounded-3xl shadow border-b-8 border-blue-500 flex items-center"><span className="text-4xl mr-4">⚡</span><p className="font-black text-gray-700 uppercase">Velocidad</p></div>
-                                <div onClick={() => setScreen('g_att')} className="game-btn bg-white p-6 rounded-3xl shadow border-b-8 border-orange-500 flex items-center"><span className="text-4xl mr-4">👁️</span><p className="font-black text-gray-700 uppercase">Atención</p></div>
+                                <div onClick={() => setScreen('mem_sel')} className="game-btn bg-white p-6 rounded-3xl shadow border-b-8 border-purple-500 flex items-center"><span className="text-4xl mr-4">🧩</span><p className="font-black text-gray-700 uppercase tracking-tighter">Memoria</p></div>
+                                <div onClick={() => setScreen('spd_sel')} className="game-btn bg-white p-6 rounded-3xl shadow border-b-8 border-blue-500 flex items-center"><span className="text-4xl mr-4">⚡</span><p className="font-black text-gray-700 uppercase tracking-tighter">Velocidad</p></div>
+                                <div onClick={() => setScreen('att_sel')} className="game-btn bg-white p-6 rounded-3xl shadow border-b-8 border-orange-500 flex items-center"><span className="text-4xl mr-4">👁️</span><p className="font-black text-gray-700 uppercase tracking-tighter">Atención</p></div>
                             </div>
                         </div>
                     )}
 
-                    {(screen === 'mem_sel' || screen === 'spd_sel') && (
+                    {(screen.endsWith('_sel')) && (
                         <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl text-center">
                             <h2 className="text-xl font-black mb-6 uppercase tracking-widest">Seleccionar Juego</h2>
                             <div className="grid gap-3">
-                                {screen === 'mem_sel' ? (
-                                    <React.Fragment><button onClick={() => setScreen('g_pairs')} className="bg-purple-100 text-purple-700 p-4 rounded-2xl font-bold">PARES DE CARTAS</button><button onClick={() => setScreen('g_simon')} className="bg-pink-100 text-pink-700 p-4 rounded-2xl font-bold">SECUENCIA SIMON</button></React.Fragment>
-                                ) : (
-                                    <React.Fragment><button onClick={() => setScreen('g_calc')} className="bg-blue-100 text-blue-700 p-4 rounded-2xl font-bold">CÁLCULO RÁPIDO</button><button onClick={() => setScreen('g_comp')} className="bg-cyan-100 text-cyan-700 p-4 rounded-2xl font-bold">COMPARACIÓN RÁPIDA</button></React.Fragment>
-                                )}
+                                {screen === 'mem_sel' && <React.Fragment><button onClick={() => setScreen('g_pairs')} className="bg-purple-100 text-purple-700 p-4 rounded-2xl font-bold">PARES DE CARTAS</button><button onClick={() => setScreen('g_simon')} className="bg-pink-100 text-pink-700 p-4 rounded-2xl font-bold">SECUENCIA SIMON</button></React.Fragment>}
+                                {screen === 'spd_sel' && <React.Fragment><button onClick={() => setScreen('g_calc')} className="bg-blue-100 text-blue-700 p-4 rounded-2xl font-bold">CÁLCULO RÁPIDO</button><button onClick={() => setScreen('g_comp')} className="bg-cyan-100 text-cyan-700 p-4 rounded-2xl font-bold">COMPARACIÓN RÁPIDA</button></React.Fragment>}
+                                {screen === 'att_sel' && <React.Fragment><button onClick={() => setScreen('g_att1')} className="bg-orange-100 text-orange-700 p-4 rounded-2xl font-bold uppercase">Diferentes</button><button onClick={() => setScreen('g_att2')} className="bg-rose-100 text-rose-700 p-4 rounded-2xl font-bold uppercase">Test Stroop</button></React.Fragment>}
                                 <button onClick={() => setScreen('home')} className="mt-4 text-gray-400 font-bold">VOLVER</button>
                             </div>
                         </div>
@@ -220,7 +154,8 @@
                         {screen === 'g_simon' && <Memory2Game onComplete={finish} />}
                         {screen === 'g_calc' && <SpeedGame onComplete={finish} />}
                         {screen === 'g_comp' && <Speed2Game onComplete={finish} />}
-                        {screen === 'g_att' && <AttentionGame onComplete={finish} />}
+                        {screen === 'g_att1' && <AttentionGame onComplete={finish} />}
+                        {screen === 'g_att2' && <Attention2Game onComplete={finish} />}
                         {screen.startsWith('g_') && <button onClick={() => setScreen('home')} className="w-full py-4 text-xs font-bold text-gray-300 border-t border-gray-50 uppercase tracking-widest">Abandonar</button>}
                     </div>
                 </div>
@@ -231,4 +166,4 @@
         root.render(<App />);
     </script>
 </body>
-</html>   
+</html>
