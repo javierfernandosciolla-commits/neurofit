@@ -9,9 +9,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { margin: 0; font-family: sans-serif; background-color: #f1f5f9; }
-        .game-btn { transition: all 0.2s; cursor: pointer; }
-        .game-btn:active { transform: scale(0.95); }
+        body { margin: 0; font-family: sans-serif; background-color: #f8fafc; }
+        .game-card { transition: all 0.2s; cursor: pointer; }
+        .game-card:hover { transform: translateY(-4px); }
         .sopa-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; }
         .letter-cell { aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.65rem; border-radius: 4px; cursor: pointer; }
     </style>
@@ -22,115 +22,123 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- ICONO ---
-        const BrainIcon = () => <span className="text-4xl">🧠</span>;
+        // --- COMPONENTES DE LOS JUEGOS ---
 
-        // --- 1. MEMORIA, 2. VELOCIDAD, 3. ATENCIÓN, 4. LENGUAJE ---
-        // (Se mantienen los componentes internos que ya probaste)
+        // 1. MEMORIA: PARES
+        const MemoryGame = ({ onComplete }) => {
+            const [cards, setCards] = useState([]);
+            const [flipped, setFlipped] = useState([]);
+            const [matched, setMatched] = useState([]);
+            const symbols = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍒'];
+            useEffect(() => { setCards([...symbols, ...symbols].sort(() => Math.random() - 0.5).map((s, i) => ({ id: i, s }))); }, []);
+            const handle = (i) => {
+                if (flipped.length === 2 || flipped.includes(i) || matched.includes(i)) return;
+                const newF = [...flipped, i]; setFlipped(newF);
+                if (newF.length === 2) {
+                    if (cards[newF[0]].s === cards[newF[1]].s) { setMatched([...matched, ...newF]); setFlipped([]); }
+                    else { setTimeout(() => setFlipped([]), 700); }
+                }
+            };
+            useEffect(() => { if (matched.length === 12 && matched.length > 0) onComplete(800); }, [matched]);
+            return ( <div className="p-4 grid grid-cols-4 gap-2">{cards.map((c, i) => ( <div key={i} onClick={() => handle(i)} className={`h-16 rounded-xl flex items-center justify-center text-2xl shadow cursor-pointer ${flipped.includes(i) || matched.includes(i) ? 'bg-white border-2 border-purple-400' : 'bg-purple-500 text-white'}`}>{flipped.includes(i) || matched.includes(i) ? c.s : '?'}</div> ))}</div> );
+        };
 
-        // --- 5. RAZONAMIENTO 1: SECUENCIAS LÓGICAS (Tu código inyectado) ---
+        // 2. VELOCIDAD: CÁLCULO
+        const SpeedGame = ({ onComplete }) => {
+            const [q, setQ] = useState(null);
+            const [score, setScore] = useState(0);
+            const [time, setTime] = useState(30);
+            const gen = () => { const n1 = Math.floor(Math.random()*20)+5; const n2 = Math.floor(Math.random()*20)+5; const ans = n1 + n2; setQ({n1, n2, ans, alt: [ans, ans+2, ans-3].sort(() => Math.random()-0.5)}); };
+            useEffect(() => { gen(); const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000); return () => clearInterval(t); }, []);
+            return ( <div className="p-6 text-center"><div className="flex justify-between mb-4 font-bold text-blue-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div>{q && <div><div className="text-5xl font-black mb-6">{q.n1}+{q.n2}</div><div className="grid gap-2">{q.alt.map(a => <button key={a} onClick={() => { if(a===q.ans) setScore(score+100); gen(); }} className="bg-blue-500 text-white py-4 rounded-xl font-bold">{a}</button>)}</div></div>}</div> );
+        };
+
+        // 3. ATENCIÓN: STROOP
+        const AttentionGame = ({ onComplete }) => {
+            const [word, setWord] = useState({ text: 'ROJO', color: 'red' });
+            const [score, setScore] = useState(0);
+            const [time, setTime] = useState(60);
+            const options = ['ROJO', 'AZUL', 'VERDE', 'AMARILLO'];
+            const colorMap = { 'ROJO': 'red', 'AZUL': 'blue', 'VERDE': 'green', 'AMARILLO': '#eab308' };
+            const gen = () => {
+                const txt = options[Math.floor(Math.random() * 4)];
+                const col = colorMap[options[Math.floor(Math.random() * 4)]];
+                setWord({ text: txt, color: col });
+            };
+            useEffect(() => { gen(); const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000); return () => clearInterval(t); }, []);
+            return ( <div className="p-4 text-center"><div className="flex justify-between mb-4 font-bold text-rose-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div><div className="h-32 flex items-center justify-center text-5xl font-black mb-6" style={{ color: word.color }}>{word.text}</div><div className="grid grid-cols-2 gap-2">{options.map(opt => <button key={opt} onClick={() => { if(colorMap[opt] === word.color) setScore(score+150); gen(); }} className="bg-indigo-500 text-white p-4 rounded-xl font-bold">{opt}</button>)}</div></div> );
+        };
+
+        // 4. LENGUAJE: SOPA DE LETRAS
+        const WordSearchGame = ({ onComplete }) => {
+            const [grid, setGrid] = useState([]);
+            const [words] = useState(['CEREBRO', 'MENTE', 'LOGICA', 'SALUD', 'IDEAS']);
+            const [found, setFound] = useState([]);
+            const [score, setScore] = useState(0);
+            const [time, setTime] = useState(120);
+            useEffect(() => {
+                let newGrid = Array(12).fill(null).map(() => Array(12).fill('').map(() => String.fromCharCode(65 + Math.floor(Math.random() * 26))));
+                words.forEach((w, idx) => { for(let i=0; i<w.length; i++) newGrid[idx*2][i] = w[i]; });
+                setGrid(newGrid);
+                const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000);
+                return () => clearInterval(t);
+            }, []);
+            return ( <div className="p-2 text-center"><div className="flex justify-between mb-2 font-bold text-teal-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div><div className="sopa-grid bg-white border p-1 rounded-lg mb-4">{grid.map((row, r) => row.map((l, c) => <div key={`${r}-${c}`} className="letter-cell bg-gray-50 hover:bg-yellow-200" onClick={() => { if(words.some(w => w.includes(l))) setScore(score+50); }}>{l}</div>))}</div></div> );
+        };
+
+        // 5. RAZONAMIENTO: SECUENCIAS (Tu código)
         const ReasoningGame = ({ onComplete }) => {
             const [sequence, setSequence] = useState([]);
-            const [correctAnswer, setCorrectAnswer] = useState(null);
+            const [correct, setCorrect] = useState(null);
             const [options, setOptions] = useState([]);
             const [score, setScore] = useState(0);
             const [round, setRound] = useState(1);
-            const [timeLeft, setTimeLeft] = useState(60);
-            const [feedback, setFeedback] = useState(null);
-
-            const generateSequence = () => {
-                const patterns = [
-                    () => { // Suma constante
-                        const start = Math.floor(Math.random() * 10) + 1;
-                        const step = Math.floor(Math.random() * 5) + 2;
-                        return { seq: [start, start + step, start + step * 2, start + step * 3], answer: start + step * 4 };
-                    },
-                    () => { // Multiplicación
-                        const start = Math.floor(Math.random() * 3) + 2;
-                        return { seq: [start, start * 2, start * 4, start * 8], answer: start * 16 };
-                    }
-                ];
-                const pattern = patterns[Math.floor(Math.random() * patterns.length)]();
-                const allOpts = [pattern.answer, pattern.answer + 2, pattern.answer - 3, pattern.answer + 5].sort(() => Math.random() - 0.5);
-                setSequence(pattern.seq); setCorrectAnswer(pattern.answer); setOptions(allOpts); setFeedback(null);
+            const gen = () => {
+                const start = Math.floor(Math.random() * 10) + 1;
+                const step = Math.floor(Math.random() * 5) + 2;
+                const ans = start + step * 4;
+                setSequence([start, start+step, start+step*2, start+step*3]);
+                setCorrect(ans);
+                setOptions([ans, ans+2, ans-3, ans+5].sort(() => Math.random() - 0.5));
             };
-
-            useEffect(() => {
-                generateSequence();
-                const t = setInterval(() => setTimeLeft(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000);
-                return () => clearInterval(t);
-            }, []);
-
-            const handleAnswer = (ans) => {
-                if (ans === correctAnswer) {
-                    setScore(score + 200); setFeedback(true);
-                    setTimeout(() => { setRound(r => r + 1); generateSequence(); }, 800);
-                } else { setFeedback(false); setTimeout(() => setFeedback(null), 800); }
-            };
-
-            return (
-                <div className="p-4 text-center">
-                    <div className="flex justify-between mb-4 font-bold text-indigo-600 text-xs"><span>⏱️ {timeLeft}s</span><span>⭐ {score}</span><span>Nivel {round}</span></div>
-                    <p className="text-xs font-bold text-gray-400 mb-4 uppercase">¿Qué número sigue?</p>
-                    <div className="flex justify-center gap-2 mb-6">
-                        {sequence.map((n, i) => <div key={i} className="w-10 h-10 bg-indigo-500 text-white rounded-lg flex items-center justify-center font-bold">{n}</div>)}
-                        <div className="w-10 h-10 bg-yellow-400 rounded-lg flex items-center justify-center font-black">?</div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                        {options.map(opt => (
-                            <button key={opt} onClick={() => handleAnswer(opt)} className={`p-4 rounded-xl font-bold text-xl shadow-sm ${feedback === null ? 'bg-white text-indigo-600' : opt === correctAnswer ? 'bg-green-500 text-white' : 'bg-red-100 text-red-300'}`}>
-                                {opt}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            );
+            useEffect(() => gen(), []);
+            return ( <div className="p-4 text-center"><div className="flex justify-between mb-4 font-bold text-indigo-600 text-xs"><span>Nivel {round}</span><span>⭐ {score}</span></div><div className="flex justify-center gap-2 mb-8">{sequence.map((n, i) => <div key={i} className="w-10 h-10 bg-indigo-500 text-white rounded flex items-center justify-center font-bold">{n}</div>)}<div className="w-10 h-10 bg-yellow-400 rounded flex items-center justify-center font-bold">?</div></div><div className="grid grid-cols-2 gap-2">{options.map(o => <button key={o} onClick={() => { if(o===correct) { setScore(score+200); setRound(round+1); gen(); } }} className="bg-white border-2 border-indigo-500 text-indigo-600 p-4 rounded-xl font-bold">{o}</button>)}</div><button onClick={() => onComplete(score)} className="mt-4 text-[10px] text-gray-400 uppercase font-bold">Finalizar</button></div> );
         };
 
         // --- APP PRINCIPAL ---
         const App = () => {
             const [screen, setScreen] = useState('home');
             const [user, setUser] = useState({ points: 800, levels: 3 });
-
-            const finish = (p) => { 
-                setUser(prev => ({ points: prev.points + p, levels: prev.levels + 1 })); 
-                setScreen('home'); 
-            };
+            const finish = (p) => { setUser(prev => ({ points: prev.points + p, levels: prev.levels + 1 })); setScreen('home'); };
 
             return (
                 <div className="min-h-screen flex flex-col items-center p-4">
                     {screen === 'home' && (
                         <div className="w-full max-w-md">
-                            <div className="bg-white p-6 rounded-3xl shadow-lg mb-6 flex justify-between items-center text-center">
+                            <div className="bg-white p-6 rounded-3xl shadow-lg mb-8 flex justify-between items-center text-center">
                                 <div><p className="text-[10px] font-bold text-gray-400 uppercase">Puntos</p><p className="text-2xl font-black text-purple-600">{user.points}</p></div>
-                                <BrainIcon />
+                                <span className="text-4xl">🧠</span>
                                 <div><p className="text-[10px] font-bold text-gray-400 uppercase">Niveles</p><p className="text-2xl font-black text-blue-600">{user.levels}</p></div>
                             </div>
-                            <div className="space-y-3">
-                                <div onClick={() => setScreen('mem_sel')} className="game-btn bg-white p-4 rounded-2xl shadow border-b-4 border-purple-500 flex items-center"><span className="mr-4 text-2xl">🧩</span><p className="font-bold text-gray-700 uppercase">Memoria</p></div>
-                                <div onClick={() => setScreen('len_sel')} className="game-btn bg-white p-4 rounded-2xl shadow border-b-4 border-teal-500 flex items-center"><span className="mr-4 text-2xl">📝</span><p className="font-bold text-gray-700 uppercase">Lenguaje</p></div>
-                                <div onClick={() => setScreen('raz_sel')} className="game-btn bg-white p-4 rounded-2xl shadow border-b-4 border-indigo-500 flex items-center"><span className="mr-4 text-2xl">💡</span><p className="font-bold text-gray-700 uppercase">Razonamiento</p></div>
-                                {/* Próximamente: Flexibilidad */}
+                            
+                            <div className="space-y-4">
+                                <div onClick={() => setScreen('g_pairs')} className="game-card bg-white p-5 rounded-2xl shadow border-b-4 border-purple-500 flex items-center"><span className="text-2xl mr-4">🧩</span><p className="font-bold text-gray-700 uppercase text-sm">Memoria</p></div>
+                                <div onClick={() => setScreen('g_calc')} className="game-card bg-white p-5 rounded-2xl shadow border-b-4 border-blue-500 flex items-center"><span className="text-2xl mr-4">⚡</span><p className="font-bold text-gray-700 uppercase text-sm">Velocidad</p></div>
+                                <div onClick={() => setScreen('g_att')} className="game-card bg-white p-5 rounded-2xl shadow border-b-4 border-orange-500 flex items-center"><span className="text-2xl mr-4">👁️</span><p className="font-bold text-gray-700 uppercase text-sm">Atención</p></div>
+                                <div onClick={() => setScreen('g_sopa')} className="game-card bg-white p-5 rounded-2xl shadow border-b-4 border-teal-500 flex items-center"><span className="text-2xl mr-4">📝</span><p className="font-bold text-gray-700 uppercase text-sm">Lenguaje</p></div>
+                                <div onClick={() => setScreen('g_razon')} className="game-card bg-white p-5 rounded-2xl shadow border-b-4 border-indigo-500 flex items-center"><span className="text-2xl mr-4">💡</span><p className="font-bold text-gray-700 uppercase text-sm">Razonamiento</p></div>
                             </div>
                         </div>
                     )}
 
-                    {screen === 'raz_sel' && (
-                        <div className="w-full max-w-md bg-white p-6 rounded-3xl shadow-xl text-center">
-                            <h2 className="text-xs font-black mb-4 uppercase text-indigo-500">Razonamiento</h2>
-                            <div className="grid gap-2">
-                                <button onClick={() => setScreen('g_razon1')} className="bg-indigo-100 text-indigo-700 p-4 rounded-xl font-bold uppercase text-xs">1. Secuencias Lógicas</button>
-                                <button disabled className="bg-gray-50 text-gray-300 p-4 rounded-xl font-bold uppercase text-xs">2. Próximamente...</button>
-                                <button onClick={() => setScreen('home')} className="mt-2 text-gray-400 text-[10px] font-bold uppercase tracking-widest">Volver</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* RENDERIZADO DE JUEGOS */}
-                    <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden mt-2">
-                        {screen === 'g_razon1' && <ReasoningGame onComplete={finish} />}
-                        {/* Aquí irán los demás casos cuando selecciones otros juegos */}
-                        {screen.startsWith('g_') && <button onClick={() => setScreen('home')} className="w-full py-4 text-[10px] font-bold text-gray-300 border-t uppercase tracking-widest">Abandonar</button>}
+                    <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden">
+                        {screen === 'g_pairs' && <MemoryGame onComplete={finish} />}
+                        {screen === 'g_calc' && <SpeedGame onComplete={finish} />}
+                        {screen === 'g_att' && <AttentionGame onComplete={finish} />}
+                        {screen === 'g_sopa' && <WordSearchGame onComplete={finish} />}
+                        {screen === 'g_razon' && <ReasoningGame onComplete={finish} />}
+                        
+                        {screen.startsWith('g_') && <button onClick={() => setScreen('home')} className="w-full py-4 text-[10px] font-bold text-gray-300 border-t uppercase tracking-widest">Cerrar Juego</button>}
                     </div>
                 </div>
             );
