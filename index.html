@@ -166,7 +166,7 @@
             return ( <div className="p-2 text-center"><div className="flex justify-between mb-2 font-bold text-teal-600 text-sm"><span>⏱️ {time}s</span><span>⭐ {score}</span></div><div className="sopa-grid bg-white border p-1 rounded-lg mb-4">{grid.map((row, r) => row.map((l, c) => <div key={`${r}-${c}`} onClick={() => handleTap(r, c)} className={`letter-cell ${selected.some(s => s.r === r && s.c === c) ? 'bg-yellow-300' : 'bg-gray-50'}`}>{l}</div>))}</div><div className="flex flex-wrap gap-1 justify-center">{words.map(w => <span key={w} className={`text-[9px] px-2 py-1 rounded-full font-bold ${foundWords.includes(w) ? 'bg-green-500 text-white' : 'bg-gray-200'}`}>{w}</span>)}</div></div> );
         };
 
-        // --- 5. LÓGICA ---
+        // --- 5. RAZONAMIENTO ---
         const LogicGame = ({ onComplete }) => {
             const [series, setSeries] = useState({ sequence: [2, 4, 6], answer: 8, options: [8, 10, 12, 14] });
             const [score, setScore] = useState(0);
@@ -180,6 +180,25 @@
             };
             useEffect(() => { gen(); const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000); return () => clearInterval(t); }, []);
             return ( <div className="p-6 text-center"><div className="flex justify-between mb-4 font-bold text-indigo-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div><p className="text-xs font-bold text-gray-400 mb-4">¿QUÉ NÚMERO SIGUE?</p><div className="flex justify-center gap-2 mb-8">{series.sequence.map((n, i) => <div key={i} className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center font-bold text-xl">{n}</div>)}<div className="w-12 h-12 bg-indigo-100 border-2 border-dashed border-indigo-400 rounded-xl flex items-center justify-center font-bold text-xl text-indigo-600">?</div></div><div className="grid grid-cols-2 gap-3">{series.options.map(opt => <button key={opt} onClick={() => { if(opt === series.answer) setScore(score+200); gen(); }} className="bg-indigo-600 text-white p-4 rounded-xl font-bold">{opt}</button>)}</div></div> );
+        };
+
+        const ReasoningSequenceGame = ({ onComplete }) => {
+            const [sequence, setSequence] = useState([]);
+            const [correctAnswer, setCorrectAnswer] = useState(null);
+            const [options, setOptions] = useState([]);
+            const [score, setScore] = useState(0);
+            const [round, setRound] = useState(1);
+            const [timeLeft, setTimeLeft] = useState(60);
+            const gen = () => {
+                const start = Math.floor(Math.random() * 10) + 1;
+                const step = Math.floor(Math.random() * 5) + 2;
+                const seq = [start, start + step, start + step * 2, start + step * 3];
+                const ans = start + step * 4;
+                setSequence(seq); setCorrectAnswer(ans);
+                setOptions([ans, ans + 2, ans - 3, ans * 2].sort(() => Math.random() - 0.5));
+            };
+            useEffect(() => { gen(); const t = setInterval(() => setTimeLeft(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000); return () => clearInterval(t); }, []);
+            return ( <div className="p-4 text-center"><div className="flex justify-between mb-4 font-bold text-indigo-600 text-xs"><span>⏱️ {timeLeft}s</span><span>⭐ {score}</span><span>Nivel {round}</span></div><div className="flex justify-center gap-1 mb-6">{sequence.map((n, i) => <div key={i} className="w-9 h-9 bg-indigo-500 text-white rounded-lg flex items-center justify-center font-bold">{n}</div>)}<div className="w-9 h-9 bg-yellow-400 rounded-lg flex items-center justify-center font-bold">?</div></div><div className="grid grid-cols-2 gap-2">{options.map(opt => <button key={opt} onClick={() => { if(opt===correctAnswer) { setScore(score+200); setRound(round+1); gen(); } }} className="bg-white border border-indigo-200 p-4 rounded-xl font-bold text-indigo-600 shadow-sm">{opt}</button>)}</div></div> );
         };
 
         // --- APP PRINCIPAL ---
@@ -204,6 +223,7 @@
                     case 'g_lang2': return <Language2Game onComplete={finish} />;
                     case 'g_lang3': return <Language3Game onComplete={finish} />;
                     case 'g_logic': return <LogicGame onComplete={finish} />;
+                    case 'g_razon_seq': return <ReasoningSequenceGame onComplete={finish} />;
                     default: return null;
                 }
             };
@@ -222,7 +242,8 @@
                                 <div onClick={() => setScreen('spd_sel')} className="game-btn bg-white p-4 rounded-2xl shadow border-b-4 border-blue-500 flex items-center"><span className="mr-4 text-2xl">⚡</span><p className="font-bold text-gray-700 uppercase">Velocidad</p></div>
                                 <div onClick={() => setScreen('att_sel')} className="game-btn bg-white p-4 rounded-2xl shadow border-b-4 border-orange-500 flex items-center"><span className="mr-4 text-2xl">👁️</span><p className="font-bold text-gray-700 uppercase">Atención</p></div>
                                 <div onClick={() => setScreen('len_sel')} className="game-btn bg-white p-4 rounded-2xl shadow border-b-4 border-teal-500 flex items-center"><span className="mr-4 text-2xl">📝</span><p className="font-bold text-gray-700 uppercase">Lenguaje</p></div>
-                                <div onClick={() => setScreen('g_logic')} className="game-btn bg-white p-4 rounded-2xl shadow border-b-4 border-indigo-500 flex items-center"><span className="mr-4 text-2xl">💡</span><p className="font-bold text-gray-700 uppercase">Lógica</p></div>
+                                <div onClick={() => setScreen('raz_sel')} className="game-btn bg-white p-4 rounded-2xl shadow border-b-4 border-indigo-500 flex items-center"><span className="mr-4 text-2xl">💡</span><p className="font-bold text-gray-700 uppercase">Razonamiento</p></div>
+                                <div className="game-btn bg-gray-100 p-4 rounded-2xl shadow border-b-4 border-gray-300 flex items-center opacity-50"><span className="mr-4 text-2xl">🔄</span><p className="font-bold text-gray-400 uppercase">Flexibilidad (Pronto)</p></div>
                             </div>
                         </div>
                     )}
@@ -235,6 +256,7 @@
                                 {screen === 'spd_sel' && <React.Fragment><button onClick={() => setScreen('g_calc')} className="bg-blue-100 text-blue-700 p-4 rounded-xl font-bold uppercase text-xs">Cálculo Rápido</button><button onClick={() => setScreen('g_comp')} className="bg-cyan-100 text-cyan-700 p-4 rounded-xl font-bold uppercase text-xs">Comparación</button></React.Fragment>}
                                 {screen === 'att_sel' && <React.Fragment><button onClick={() => setScreen('g_att1')} className="bg-orange-100 text-orange-700 p-4 rounded-xl font-bold uppercase text-xs">Encuentra el diferente</button><button onClick={() => setScreen('g_att2')} className="bg-rose-100 text-rose-700 p-4 rounded-xl font-bold uppercase text-xs">Test Stroop</button></React.Fragment>}
                                 {screen === 'len_sel' && <React.Fragment><button onClick={() => setScreen('g_lang1')} className="bg-teal-100 text-teal-700 p-4 rounded-xl font-bold uppercase text-xs text-left">1. Forma la Palabra</button><button onClick={() => setScreen('g_lang2')} className="bg-emerald-100 text-emerald-700 p-4 rounded-xl font-bold uppercase text-xs text-left">2. Sinónimos Rápidos</button><button onClick={() => setScreen('g_lang3')} className="bg-green-100 text-green-700 p-4 rounded-xl font-bold uppercase text-xs text-left">3. Sopa de Letras</button></React.Fragment>}
+                                {screen === 'raz_sel' && <React.Fragment><button onClick={() => setScreen('g_logic')} className="bg-indigo-100 text-indigo-700 p-4 rounded-xl font-bold uppercase text-xs">1. Lógica Simple</button><button onClick={() => setScreen('g_razon_seq')} className="bg-blue-100 text-blue-700 p-4 rounded-xl font-bold uppercase text-xs">2. Secuencias Matemáticas</button></React.Fragment>}
                                 <button onClick={() => setScreen('home')} className="mt-2 text-gray-400 text-[10px] font-bold uppercase">Volver</button>
                             </div>
                         </div>
