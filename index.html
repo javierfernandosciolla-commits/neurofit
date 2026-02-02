@@ -1,1 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroFit - Centro de Entrenamiento</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; font-family: sans-serif; background-color: #f1f5f9; }
+        .game-btn { transition: all 0.2s; cursor: pointer; }
+        .game-btn:active { transform: scale(0.95); }
+        .sopa-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; }
+        .letter-cell { aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.65rem; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
 
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- COMPONENTES DE APOYO ---
+        const BrainIcon = () => <span className="text-4xl">🧠</span>;
+
+        // --- 1. MEMORIA ---
+        const MemoryGame = ({ onComplete }) => {
+            const [cards, setCards] = useState([]);
+            const [flipped, setFlipped] = useState([]);
+            const [matched, setMatched] = useState([]);
+            const symbols = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍒'];
+            useEffect(() => { setCards([...symbols, ...symbols].sort(() => Math.random() - 0.5).map((s, i) => ({ id: i, s }))); }, []);
+            const handle = (i) => {
+                if (flipped.length === 2 || flipped.includes(i) || matched.includes(i)) return;
+                const newF = [...flipped, i]; setFlipped(newF);
+                if (newF.length === 2) {
+                    if (cards[newF[0]].s === cards[newF[1]].s) { setMatched([...matched, ...newF]); setFlipped([]); }
+                    else { setTimeout(() => setFlipped([]), 700); }
+                }
+            };
+            useEffect(() => { if (matched.length === 12 && matched.length > 0) onComplete(800); }, [matched]);
+            return ( <div className="p-4 grid grid-cols-4 gap-2">{cards.map((c, i) => ( <div key={i} onClick={() => handle(i)} className={`h-16 rounded-xl flex items-center justify-center text-2xl shadow cursor-pointer ${flipped.includes(i) || matched.includes(i) ? 'bg-white border-2 border-purple-400' : 'bg-purple-500 text-white'}`}>{flipped.includes(i) || matched.includes(i) ? c.s : '?'}</div> ))}</div> );
+        };
+
+        const Memory2Game = ({ onComplete }) => {
+            const [seq, setSeq] = useState([]);
+            const [userSeq, setUserSeq] = useState([]);
+            const [active, setActive] = useState(null);
+            const colors = ['red', 'blue', 'green', 'yellow'];
+            const start = (curr = []) => { const n = colors[Math.floor(Math.random() * 4)]; const newS = [...curr, n]; setSeq(newS); setUserSeq([]); play(newS); };
+            const play = async (s) => { for (let c of s) { await new Promise(r => setTimeout(r, 400)); setActive(c); await new Promise(r => setTimeout(r, 400)); setActive(null); } };
+            const click = (c) => { setActive(c); setTimeout(() => setActive(null), 200); const next = [...userSeq, c]; setUserSeq(next); if (c !== seq[next.length - 1]) { onComplete((seq.length - 1) * 200); return; } if (next.length === seq.length) setTimeout(() => start(seq), 800); };
+            useEffect(() => start(), []);
+            return ( <div className="p-6 grid grid-cols-2 gap-4">{colors.map(c => <div key={c} onClick={() => click(c)} className={`h-24 w-24 rounded-full shadow-lg ${active === c ? 'brightness-150 scale-105' : 'opacity-70'} ${c === 'red' ? 'bg-red-500' : c === 'blue' ? 'bg-blue-500' : c === 'green' ? 'bg-green-500' : 'bg-yellow-400'}`} />)}</div> );
+        };
+
+        // --- 2. VELOCIDAD ---
+        const SpeedGame = ({ onComplete }) => {
+            const [q, setQ] = useState(null);
+            const [score, setScore] = useState(0);
+            const [time, setTime] = useState(30);
+            const gen = () => { const n1 = Math.floor(Math.random()*20)+5; const n2 = Math.floor(Math.random()*20)+5; const ans = n1 + n2; setQ({n1, n2, ans, alt: [ans, ans+2, ans-3].sort(() => Math.random()-0.5)}); };
+            useEffect(() => { gen(); const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000); return () => clearInterval(t); }, []);
+            return ( <div className="p-6 text-center"><div className="flex justify-between mb-4 font-bold text-blue-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div>{q && <div><div className="text-5xl font-black mb-6">{q.n1}+{q.n2}</div><div className="grid gap-2">{q.alt.map(a => <button key={a} onClick={() => { if(a===q.ans) setScore(score+100); gen(); }} className="bg-blue-500 text-white py-4 rounded-xl font-bold">{a}</button>)}</div></div>}</div> );
+        };
+
+        const Speed2Game = ({ onComplete }) => {
+            const [nums, setNums] = useState({ left: 0, right: 0 });
+            const [score, setScore] = useState(0);
+            const [time, setTime] = useState(45);
+            const gen = () => { setNums({ left: Math.floor(Math.random()*99)+1, right: Math.floor(Math.random()*99)+1 }); };
+            useEffect(() => { gen(); const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000); return () => clearInterval(t); }, []);
+            const handle = (ans) => { const corr = (ans === 'ma' && nums.left > nums.right) || (ans === 'me' && nums.left < nums.right) || (ans === 'ig' && nums.left === nums.right); if (corr) setScore(score + 100); gen(); };
+            return ( <div className="p-4 text-center"><div className="flex justify-between mb-4 font-bold text-cyan-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div><div className="flex justify-center gap-4 mb-6"><div className="p-6 rounded-2xl bg-purple-500 text-white text-4xl flex-1 font-bold">{nums.left}</div><div className="p-6 rounded-2xl bg-blue-500 text-white text-4xl flex-1 font-bold">{nums.right}</div></div><div className="grid grid-cols-3 gap-2"><button onClick={() => handle('ma')} className="bg-green-500 text-white p-3 rounded-xl font-bold">MAYOR</button><button onClick={() => handle('ig')} className="bg-yellow-500 text-white p-3 rounded-xl font-bold">IGUAL</button><button onClick={() => handle('me')} className="bg-red-500 text-white p-3 rounded-xl font-bold">MENOR</button></div></div> );
+        };
+
+        // --- 3. ATENCIÓN ---
+        const AttentionGame = ({ onComplete }) => {
+            const [items, setItems] = useState([]);
+            const [diffIdx, setDiffIdx] = useState(0);
+            const [score, setScore] = useState(0);
+            const [time, setTime] = useState(60);
+            const gen = () => {
+                const its = Array(9).fill('🍎');
+                const idx = Math.floor(Math.random() * 9);
+                its[idx] = '🍏';
+                setItems(its); setDiffIdx(idx);
+            };
+            useEffect(() => { gen(); const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000); return () => clearInterval(t); }, []);
+            return ( <div className="p-4 text-center"><div className="flex justify-between mb-4 font-bold text-orange-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div><div className="grid grid-cols-3 gap-2">{items.map((it, i) => <button key={i} onClick={() => { if(i===diffIdx) { setScore(score+100); gen(); } }} className="bg-white aspect-square rounded-xl text-4xl shadow-sm">{it}</button>)}</div></div> );
+        };
+
+        const Attention2Game = ({ onComplete }) => {
+            const [word, setWord] = useState({ text: 'ROJO', color: 'red' });
+            const [score, setScore] = useState(0);
+            const [time, setTime] = useState(60);
+            const options = ['ROJO', 'AZUL', 'VERDE', 'AMARILLO'];
+            const colorMap = { 'ROJO': 'red', 'AZUL': 'blue', 'VERDE': 'green', 'AMARILLO': '#eab308' };
+            const gen = () => {
+                const txt = options[Math.floor(Math.random() * 4)];
+                const col = colorMap[options[Math.floor(Math.random() * 4)]];
+                setWord({ text: txt, color: col });
+            };
+            useEffect(() => { gen(); const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000); return () => clearInterval(t); }, []);
+            return ( <div className="p-4 text-center"><div className="flex justify-between mb-4 font-bold text-rose-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div><p className="text-[10px] font-bold text-gray-400 mb-4 uppercase">Toca el COLOR de la palabra</p><div className="h-32 flex items-center justify-center text-5xl font-black mb-6" style={{ color: word.color }}>{word.text}</div><div className="grid grid-cols-2 gap-2">{options.map(opt => <button key={opt} onClick={() => { if(colorMap[opt] === word.color) setScore(score+150); gen(); }} className="bg-indigo-500 text-white p-4 rounded-xl font-bold">{opt}</button>)}</div></div> );
+        };
+
+        // --- 4. LENGUAJE ---
+        const LanguageGame = ({ onComplete }) => {
+            const [target, setTarget] = useState({ w: 'CEREBRO', h: 'Órgano vital' });
+            const [scrambled, setScrambled] = useState([]);
+            const [userWord, setUserWord] = useState([]);
+            const [score, setScore] = useState(0);
+            const [time, setTime] = useState(90);
+            const words = [{ w: 'CEREBRO', h: 'Órgano principal' }, { w: 'LOGICA', h: 'Pensamiento racional' }];
+            const gen = () => { const obj = words[Math.floor(Math.random() * words.length)]; setTarget(obj); setScrambled(obj.w.split('').sort(() => Math.random() - 0.5)); setUserWord([]); };
+            useEffect(() => { gen(); const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000); return () => clearInterval(t); }, []);
+            return ( <div className="p-4 text-center"><div className="flex justify-between mb-4 font-bold text-teal-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div><p className="text-blue-800 font-bold mb-4 italic">"{target.h}"</p><div className="flex justify-center gap-1 mb-6 min-h-[40px] border-b pb-2">{userWord.map((l, i) => <span key={i} className="w-8 h-8 bg-blue-500 text-white rounded flex items-center justify-center font-bold">{l}</span>)}</div><div className="flex flex-wrap justify-center gap-1 mb-4">{scrambled.map((l, i) => <button key={i} onClick={() => { setUserWord([...userWord, l]); setScrambled(scrambled.filter((_, idx) => idx !== i)); }} className="w-8 h-8 bg-gray-100 rounded font-bold">{l}</button>)}</div><button onClick={() => { if(userWord.join('') === target.w) { setScore(score+250); gen(); } else { setScrambled([...scrambled, ...userWord]); setUserWord([]); } }} className="w-full py-3 bg-teal-500 text-white rounded-xl font-bold">COMPROBAR</button></div> );
+        };
+
+        const Language2Game = ({ onComplete }) => {
+            const [target, setTarget] = useState('');
+            const [options, setOptions] = useState([]);
+            const [score, setScore] = useState(0);
+            const [time, setTime] = useState(75);
+            const synonymPairs = [{ word: 'FELIZ', synonyms: ['ALEGRE', 'CONTENTO'], distractors: ['TRISTE', 'ENOJADO'] }, { word: 'RÁPIDO', synonyms: ['VELOZ', 'ÁGIL'], distractors: ['LENTO', 'PAUSADO'] }];
+            const gen = () => {
+                const pair = synonymPairs[Math.floor(Math.random() * synonymPairs.length)];
+                const correct = pair.synonyms[Math.floor(Math.random() * 2)];
+                const opts = [{t: correct, c: true}, {t: pair.distractors[0], c: false}, {t: pair.distractors[1], c: false}].sort(() => Math.random() - 0.5);
+                setTarget(pair.word); setOptions(opts);
+            };
+            useEffect(() => { gen(); const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000); return () => clearInterval(t); }, []);
+            return ( <div className="p-4 text-center"><div className="flex justify-between mb-4 font-bold text-teal-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div><div className="bg-yellow-50 rounded-2xl p-6 mb-4 text-3xl font-black">{target}</div><div className="grid gap-2">{options.map((o, i) => <button key={i} onClick={() => { if(o.c) setScore(score + 200); gen(); }} className="bg-teal-500 text-white py-3 rounded-xl font-bold">{o.t}</button>)}</div></div> );
+        };
+
+        const Language3Game = ({ onComplete }) => {
+            const [grid, setGrid] = useState([]);
+            const [words, setWords] = useState([]);
+            const [foundWords, setFoundWords] = useState([]);
+            const [score, setScore] = useState(0);
+            const [time, setTime] = useState(120);
+            const [selected, setSelected] = useState([]);
+            const GRID_SIZE = 12;
+
+            useEffect(() => {
+                const newGrid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill('').map(() => String.fromCharCode(65 + Math.floor(Math.random() * 26))));
+                const wList = ['CEREBRO', 'NEURONA', 'LOGICA', 'MENTE', 'SABER'];
+                wList.forEach((word, idx) => { for(let i=0; i<word.length; i++) newGrid[idx*2][i] = word[i]; });
+                setGrid(newGrid); setWords(wList);
+                const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000);
+                return () => clearInterval(t);
+            }, []);
+
+            const handleTap = (r, c) => {
+                const letter = grid[r][c];
+                const newSel = [...selected, {r, c, l: letter}];
+                setSelected(newSel);
+                const word = newSel.map(s => s.l).join('');
+                if(words.includes(word) && !foundWords.includes(word)) { setFoundWords([...foundWords, word]); setScore(score + 500); setSelected([]); }
+                else if (newSel.length > 8) setSelected([]);
+            };
+
+            return ( <div className="p-2 text-center"><div className="flex justify-between mb-2 font-bold text-teal-600 text-sm"><span>⏱️ {time}s</span><span>⭐ {score}</span></div><div className="sopa-grid bg-white border p-1 rounded-lg mb-4">{grid.map((row, r) => row.map((l, c) => <div key={`${r}-${c}`} onClick={() => handleTap(r, c)} className={`letter-cell ${selected.some(s => s.r === r && s.c === c) ? 'bg-yellow-300' : 'bg-gray-50'}`}>{l}</div>))}</div><div className="flex flex-wrap gap-1 justify-center">{words.map(w => <span key={w} className={`text-[9px] px-2 py-1 rounded-full font-bold ${foundWords.includes(w) ? 'bg-green-500 text-white' : 'bg-gray-200'}`}>{w}</span>)}</div></div> );
+        };
+
+        // --- 5. RAZONAMIENTO ---
+        const LogicGame = ({ onComplete }) => {
+            const [series, setSeries] = useState({ sequence: [2, 4, 6], answer: 8, options: [8, 10, 12, 14] });
+            const [score, setScore] = useState(0);
+            const [time, setTime] = useState(60);
+            const gen = () => {
+                const start = Math.floor(Math.random() * 10);
+                const step = Math.floor(Math.random() * 5) + 2;
+                const seq = [start, start + step, start + (step * 2)];
+                const ans = start + (step * 3);
+                setSeries({ sequence: seq, answer: ans, options: [ans, ans + 2, ans - 1, ans + 5].sort(() => Math.random() - 0.5) });
+            };
+            useEffect(() => { gen(); const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000); return () => clearInterval(t); }, []);
+            return ( <div className="p-6 text-center"><div className="flex justify-between mb-4 font-bold text-indigo-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div><p className="text-xs font-bold text-gray-400 mb-4">¿QUÉ NÚMERO SIGUE?</p><div className="flex justify-center gap-2 mb-8">{series.sequence.map((n, i) => <div key={i} className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center font-bold text-xl">{n}</div>)}<div className="w-12 h-12 bg-indigo-100 border-2 border-dashed border-indigo-400 rounded-xl flex items-center justify-center font-bold text-xl text-indigo-600">?</div></div><div className="grid grid-cols-2 gap-3">{series.options.map(opt => <button key={opt} onClick={() => { if(opt === series.answer) setScore(score+200); gen(); }} className="bg-indigo-600 text-white p-4 rounded-xl font-bold">{opt}</button>)}</div></div> );
+        };
+
+        // --- 6. FLEXIBILIDAD (TU NUEVO JUEGO) ---
+        const FlexibilityGame = ({ onComplete }) => {
+            const [nodes, setNodes] = useState([]);
+            const [sequence, setSequence] = useState([]);
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [connectedNodes, setConnectedNodes] = useState([]);
+            const [lines, setLines] = useState([]);
+            const [score, setScore] = useState(0);
+            const [errors, setErrors] = useState(0);
+            const [timeLeft, setTimeLeft] = useState(90);
+            const [gameStarted, setGameStarted] = useState(false);
+            const [gameComplete, setGameComplete] = useState(false);
+            const [feedback, setFeedback] = useState(null);
+            const canvasRef = useRef(null);
+
+            useEffect(() => { generateGame(); }, []);
+
+            useEffect(() => {
+                if (gameStarted && timeLeft > 0 && !gameComplete) {
+                    const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+                    return () => clearTimeout(timer);
+                }
+                if (timeLeft === 0 && !gameComplete) { finishGame(false); }
+            }, [timeLeft, gameStarted, gameComplete]);
+
+            useEffect(() => { drawLines(); }, [lines]);
+
+            const generateGame = () => {
+                const seq = [];
+                for (let i = 1; i <= 5; i++) {
+                    seq.push({ type: 'number', value: i, label: String(i) });
+                    seq.push({ type: 'letter', value: i, label: String.fromCharCode(64 + i) });
+                }
+                const generatedNodes = seq.map(item => ({
+                    ...item,
+                    x: Math.random() * 70 + 15,
+                    y: Math.random() * 60 + 20,
+                    id: `${item.type}-${item.value}`
+                }));
+                setNodes(generatedNodes); setSequence(seq); setCurrentIndex(0); setConnectedNodes([]); setLines([]); setScore(0); setErrors(0); setGameComplete(false); setFeedback(null);
+            };
+
+            const drawLines = () => {
+                const canvas = canvasRef.current; if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                lines.forEach(line => {
+                    ctx.beginPath(); ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 3;
+                    ctx.moveTo(line.x1, line.y1); ctx.lineTo(line.x2, line.y2); ctx.stroke();
+                });
+            };
+
+            const handleNodeClick = (node, index) => {
+                if (!gameStarted) setGameStarted(true);
+                if (gameComplete || connectedNodes.includes(node.id)) return;
+
+                if (index === currentIndex) {
+                    setConnectedNodes([...connectedNodes, node.id]);
+                    if (currentIndex > 0) {
+                        const prevNode = nodes[currentIndex - 1];
+                        const canvas = canvasRef.current;
+                        const rect = canvas.getBoundingClientRect();
+                        const newLine = {
+                            x1: (prevNode.x / 100) * rect.width, y1: (prevNode.y / 100) * rect.height,
+                            x2: (node.x / 100) * rect.width, y2: (node.y / 100) * rect.height
+                        };
+                        setLines([...lines, newLine]);
+                    }
+                    setCurrentIndex(currentIndex + 1);
+                    setFeedback({ correct: true, message: '¡Bien!' });
+                    if (currentIndex === sequence.length - 1) { finishGame(true); } 
+                    else { setTimeout(() => setFeedback(null), 400); }
+                } else {
+                    setErrors(errors + 1);
+                    setFeedback({ correct: false, message: 'Orden: 1-A-2-B...' });
+                    setTimeout(() => setFeedback(null), 1000);
+                }
+            };
+
+            const finishGame = (completed) => {
+                setGameComplete(true);
+                const finalScore = Math.max((completed ? 1000 : 0) + (timeLeft * 10) - (errors * 50), 100);
+                setTimeout(() => onComplete(finalScore), 1500);
+            };
+
+            return (
+                <div className="p-2 relative bg-gray-50 rounded-3xl h-[450px] overflow-hidden">
+                    <div className="flex justify-between text-[10px] font-bold uppercase mb-2">
+                        <span className="text-blue-600">⏱️ {timeLeft}s</span>
+                        <span className="text-red-500">Errores: {errors}</span>
+                        <span className="text-purple-600">Siguiente: {sequence[currentIndex]?.label}</span>
+                    </div>
+                    <canvas ref={canvasRef} width={400} height={450} className="absolute top-0 left-0 w-full h-full pointer-events-none z-0" />
+                    {nodes.map((node, i) => (
+                        <button key={node.id} onClick={() => handleNodeClick(node, i)} disabled={gameComplete || connectedNodes.includes(node.id)}
+                            className={`absolute w-10 h-10 rounded-full font-bold text-xs transition-all z-10 flex items-center justify-center shadow-md
+                            ${connectedNodes.includes(node.id) ? 'bg-green-500 text-white opacity-50' : 'bg-white border-2 border-pink-400 text-pink-600'}`}
+                            style={{ left: `${node.x}%`, top: `${node.y}%`, transform: 'translate(-50%, -50%)' }}>
+                            {node.label}
+                        </button>
+                    ))}
+                    {feedback && <div className={`absolute bottom-4 left-0 w-full text-center font-bold ${feedback.correct ? 'text-green-500' : 'text-red-500'}`}>{feedback.message}</div>}
+                </div>
+            );
+        };
+
+        // --- APP PRINCIPAL ---
+        const App = () => {
+            const [screen, setScreen] = useState('home');
+            const [user, setUser] = useState({ points: 800, levels: 3 });
+
+            const finish = (p) => { 
+                setUser(prev => ({ points: prev.points + p, levels: prev.levels + 1 })); 
+                setScreen('home'); 
+            };
+
+            const renderGame = () => {
+                switch(screen) {
+                    case 'g_pairs': return <MemoryGame onComplete={finish} />;
+                    case 'g_simon': return <Memory2Game onComplete={finish} />;
+                    case 'g_calc': return <SpeedGame onComplete={finish} />;
+                    case 'g_comp': return <Speed2Game onComplete={finish} />;
+                    case 'g_att1': return <AttentionGame onComplete={finish} />;
+                    case 'g_att2': return <Attention2Game onComplete={finish} />;
+                    case 'g_lang1': return <LanguageGame onComplete={finish} />;
+                    case 'g_lang2': return <Language2Game onComplete={finish} />;
+                    case 'g_lang3': return <Language3Game onComplete={finish} />;
+                    case 'g_logic': return <LogicGame onComplete={finish} />;
+                    case 'g_flex': return <FlexibilityGame onComplete={finish} />;
+                    default: return null;
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col items-center p-4">
+                    {screen === 'home' && (
+                        <div className="w-full max-w-md">
+                            <div className="bg-white p-6 rounded-3xl shadow-lg mb-6 flex justify-between items-center text-center">
+                                <div><p className="text-[10px] font-bold text-gray-400 uppercase">Puntos</p><p className="text-2xl font-black text-purple-600">{user.points}</p></div>
+                                <BrainIcon />
+                                <div><p className="text-[10px] font-bold text-gray-400 uppercase">Niveles</p><p className="text-2xl font-black text-blue-600">{user.levels}</p></div>
+                            </div>
+                            <div className="space-y-3">
+                                <div onClick={() => setScreen('mem_sel')} className="game-btn bg-white p-4 rounded-2xl shadow border-b-4 border-purple-500 flex items-center"><span className="mr-4 text-2xl">🧩</span><p className="font-bold text-gray-700 uppercase">Memoria</p></div>
+                                <div onClick={() => setScreen('spd_sel')} className="game-btn bg-white p-4 rounded-2xl shadow border-b-4 border-blue-500 flex items-center"><span className="mr-4 text-2xl">⚡</span><p className="font-bold text-gray-700 uppercase">Velocidad</p></div>
+                                <div onClick={() => setScreen('att_sel')} className="game-btn bg-white p-4 rounded-2xl shadow border-b-4 border-orange-500 flex items-center"><span className="mr-4 text-2xl">👁️</span><p className="font-bold text-gray-700 uppercase">Atención</p></div>
+                                <div onClick={() => setScreen('len_sel')} className="game-btn bg-white p-4 rounded-2xl shadow border-b-4 border-teal-500 flex items-center"><span className="mr-4 text-2xl">📝</span><p className="font-bold text-gray-700 uppercase">Lenguaje</p></div>
+                                <div onClick={() => setScreen('g_logic')} className="game-btn bg-white p-4 rounded-2xl shadow border-b-4 border-indigo-500 flex items-center"><span className="mr-4 text-2xl">💡</span><p className="font-bold text-gray-700 uppercase">Lógica</p></div>
+                                <div onClick={() => setScreen('g_flex')} className="game-btn bg-white p-4 rounded-2xl shadow border-b-4 border-pink-500 flex items-center"><span className="mr-4 text-2xl">🔄</span><p className="font-bold text-gray-700 uppercase">Flexibilidad</p></div>
+                            </div>
+                        </div>
+                    )}
+
+                    {screen.endsWith('_sel') && (
+                        <div className="w-full max-w-md bg-white p-6 rounded-3xl shadow-xl text-center">
+                            <h2 className="text-sm font-black mb-4 uppercase text-gray-400">Seleccionar Juego</h2>
+                            <div className="grid gap-2">
+                                {screen === 'mem_sel' && <React.Fragment><button onClick={() => setScreen('g_pairs')} className="bg-purple-100 text-purple-700 p-4 rounded-xl font-bold uppercase text-xs">Pares de Cartas</button><button onClick={() => setScreen('g_simon')} className="bg-pink-100 text-pink-700 p-4 rounded-xl font-bold uppercase text-xs">Simón Dice</button></React.Fragment>}
+                                {screen === 'spd_sel' && <React.Fragment><button onClick={() => setScreen('g_calc')} className="bg-blue-100 text-blue-700 p-4 rounded-xl font-bold uppercase text-xs">Cálculo Rápido</button><button onClick={() => setScreen('g_comp')} className="bg-cyan-100 text-cyan-700 p-4 rounded-xl font-bold uppercase text-xs">Comparación</button></React.Fragment>}
+                                {screen === 'att_sel' && <React.Fragment><button onClick={() => setScreen('g_att1')} className="bg-orange-100 text-orange-700 p-4 rounded-xl font-bold uppercase text-xs">Encuentra el diferente</button><button onClick={() => setScreen('g_att2')} className="bg-rose-100 text-rose-700 p-4 rounded-xl font-bold uppercase text-xs">Test Stroop</button></React.Fragment>}
+                                {screen === 'len_sel' && <React.Fragment><button onClick={() => setScreen('g_lang1')} className="bg-teal-100 text-teal-700 p-4 rounded-xl font-bold uppercase text-xs text-left">1. Forma la Palabra</button><button onClick={() => setScreen('g_lang2')} className="bg-emerald-100 text-emerald-700 p-4 rounded-xl font-bold uppercase text-xs text-left">2. Sinónimos Rápidos</button><button onClick={() => setScreen('g_lang3')} className="bg-green-100 text-green-700 p-4 rounded-xl font-bold uppercase text-xs text-left">3. Sopa de Letras</button></React.Fragment>}
+                                <button onClick={() => setScreen('home')} className="mt-2 text-gray-400 text-[10px] font-bold uppercase">Volver</button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden">
+                        {renderGame()}
+                        {screen.startsWith('g_') && <button onClick={() => setScreen('home')} className="w-full py-4 text-[10px] font-bold text-gray-300 border-t uppercase">Abandonar Partida</button>}
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
