@@ -180,8 +180,8 @@
             useEffect(() => { gen(); const t = setInterval(() => setTime(p => { if(p<=1) { clearInterval(t); onComplete(score); } return p-1; }), 1000); return () => clearInterval(t); }, []);
             return ( <div className="p-6 text-center"><div className="flex justify-between mb-4 font-bold text-indigo-600"><span>⏱️ {time}s</span><span>⭐ {score}</span></div><p className="text-xs font-bold text-gray-400 mb-4">¿QUÉ NÚMERO SIGUE?</p><div className="flex justify-center gap-2 mb-8">{series.sequence.map((n, i) => <div key={i} className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center font-bold text-xl">{n}</div>)}<div className="w-12 h-12 bg-indigo-100 border-2 border-dashed border-indigo-400 rounded-xl flex items-center justify-center font-bold text-xl text-indigo-600">?</div></div><div className="grid grid-cols-2 gap-3">{series.options.map(opt => <button key={opt} onClick={() => { if(opt === series.answer) setScore(score+200); gen(); }} className="bg-indigo-600 text-white p-4 rounded-xl font-bold">{opt}</button>)}</div></div> );
         };
-         // --- 5.2 RAZONAMIENTO: Analogías ---
-         const Reasoning2Game = ({ onComplete }) => {
+
+        const Reasoning2Game = ({ onComplete }) => {
             const [analogy, setAnalogy] = useState(null);
             const [options, setOptions] = useState([]);
             const [score, setScore] = useState(0);
@@ -189,96 +189,86 @@
             const [gameStarted, setGameStarted] = useState(false);
             const [feedback, setFeedback] = useState(null);
 
-    const analogies = [
-        { a: 'PERRO', b: 'LADRAR', c: 'GATO', answer: 'MAULLAR', distractors: ['CORRER', 'DORMIR'] },
-        { a: 'DÍA', b: 'NOCHE', c: 'SOL', answer: 'LUNA', distractors: ['ESTRELLA', 'PLANETA'] },
-        { a: 'DOCTOR', b: 'HOSPITAL', c: 'MAESTRO', answer: 'ESCUELA', distractors: ['LIBRO', 'AULA'] },
-        { a: 'LEER', b: 'LIBRO', c: 'ESCUCHAR', answer: 'MÚSICA', distractors: ['OÍDO', 'RADIO'] },
-        { a: 'MANO', b: 'GUANTE', c: 'PIE', answer: 'ZAPATO', distractors: ['DEDO', 'CAMINAR'] },
-        { a: 'PÁJARO', b: 'VOLAR', c: 'PEZ', answer: 'NADAR', distractors: ['AGUA', 'ALETA'] }
-    ];
+            const analogies = [
+                { a: 'PERRO', b: 'LADRAR', c: 'GATO', answer: 'MAULLAR', distractors: ['CORRER', 'DORMIR'] },
+                { a: 'DÍA', b: 'NOCHE', c: 'SOL', answer: 'LUNA', distractors: ['ESTRELLA', 'PLANETA'] },
+                { a: 'DOCTOR', b: 'HOSPITAL', c: 'MAESTRO', answer: 'ESCUELA', distractors: ['LIBRO', 'AULA'] },
+                { a: 'LEER', b: 'LIBRO', c: 'ESCUCHAR', answer: 'MÚSICA', distractors: ['OÍDO', 'RADIO'] },
+                { a: 'MANO', b: 'GUANTE', c: 'PIE', answer: 'ZAPATO', distractors: ['DEDO', 'CAMINAR'] },
+                { a: 'PÁJARO', b: 'VOLAR', c: 'PEZ', answer: 'NADAR', distractors: ['AGUA', 'ALETA'] }
+            ];
 
-    const generateAnalogy = () => {
-        const item = analogies[Math.floor(Math.random() * analogies.length)];
-        const allOptions = [item.answer, ...item.distractors].sort(() => Math.random() - 0.5);
-        setAnalogy(item);
-        setOptions(allOptions);
-        setFeedback(null);
-    };
+            const generateAnalogy = () => {
+                const item = analogies[Math.floor(Math.random() * analogies.length)];
+                const allOptions = [item.answer, ...item.distractors].sort(() => Math.random() - 0.5);
+                setAnalogy(item);
+                setOptions(allOptions);
+                setFeedback(null);
+            };
 
-    useEffect(() => {
-        generateAnalogy();
-    }, []);
+            useEffect(() => { generateAnalogy(); }, []);
 
-    useEffect(() => {
-        if (gameStarted && timeLeft > 0) {
-            const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-            return () => clearTimeout(timer);
-        }
-        if (timeLeft === 0) onComplete(score);
-    }, [timeLeft, gameStarted]);
+            useEffect(() => {
+                if (gameStarted && timeLeft > 0) {
+                    const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+                    return () => clearTimeout(timer);
+                }
+                if (timeLeft === 0) onComplete(score);
+            }, [timeLeft, gameStarted]);
 
-    const handleAnswer = (ans) => {
-        if (!gameStarted) setGameStarted(true);
-        if (ans === analogy.answer) {
-            setScore(score + 250);
-            setFeedback({ correct: true });
-        } else {
-            setFeedback({ correct: false });
-        }
-        setTimeout(generateAnalogy, 800);
-    };
+            const handleAnswer = (ans) => {
+                if (!gameStarted) setGameStarted(true);
+                if (ans === analogy.answer) {
+                    setScore(score + 250);
+                    setFeedback({ correct: true });
+                } else {
+                    setFeedback({ correct: false });
+                }
+                setTimeout(generateAnalogy, 800);
+            };
 
-    if (!analogy) return null;
+            if (!analogy) return null;
 
-    return (
-        <div className="p-4 text-center">
-            <div className="flex justify-between mb-4 font-bold text-indigo-600 text-sm uppercase">
-                <span>⏱️ {timeLeft}s</span>
-                <span>⭐ {score}</span>
-            </div>
-            
-            <p className="text-[10px] font-bold text-gray-400 mb-4 uppercase">Completa la relación</p>
-            
-            <div className="bg-indigo-50 p-6 rounded-2xl mb-6 shadow-inner">
-                <div className="text-lg font-bold text-gray-700 leading-tight">
-                    <span className="text-indigo-600">{analogy.a}</span> es a <span className="text-indigo-600">{analogy.b}</span>
+            return (
+                <div className="p-4 text-center">
+                    <div className="flex justify-between mb-4 font-bold text-indigo-600 text-sm uppercase">
+                        <span>⏱️ {timeLeft}s</span>
+                        <span>⭐ {score}</span>
+                    </div>
+                    <p className="text-[10px] font-bold text-gray-400 mb-4 uppercase">Completa la relación</p>
+                    <div className="bg-indigo-50 p-6 rounded-2xl mb-6 shadow-inner">
+                        <div className="text-lg font-bold text-gray-700 leading-tight">
+                            <span className="text-indigo-600">{analogy.a}</span> es a <span className="text-indigo-600">{analogy.b}</span>
+                        </div>
+                        <div className="text-gray-400 my-1 text-xs font-bold uppercase">Como</div>
+                        <div className="text-lg font-bold text-gray-700 leading-tight">
+                            <span className="text-indigo-600">{analogy.c}</span> es a <span className="border-b-2 border-orange-400 text-orange-500 px-2">?</span>
+                        </div>
+                    </div>
+                    <div className="grid gap-2">
+                        {options.map((opt, i) => (
+                            <button key={i} onClick={() => handleAnswer(opt)} disabled={feedback !== null}
+                                className={`py-3 rounded-xl font-bold uppercase transition-all ${
+                                    feedback && opt === analogy.answer ? 'bg-green-500 text-white' : 
+                                    feedback && opt !== analogy.answer ? 'bg-gray-100 text-gray-300' :
+                                    'bg-indigo-600 text-white active:scale-95'
+                                }`}>
+                                {opt}
+                            </button>
+                        ))}
+                    </div>
+                    {feedback && (
+                        <div className={`mt-4 text-xs font-black uppercase ${feedback.correct ? 'text-green-500' : 'text-red-500'}`}>
+                            {feedback.correct ? '¡Excelente!' : '¡Sigue intentando!'}
+                        </div>
+                    )}
                 </div>
-                <div className="text-gray-400 my-1 text-xs font-bold uppercase">Como</div>
-                <div className="text-lg font-bold text-gray-700 leading-tight">
-                    <span className="text-indigo-600">{analogy.c}</span> es a <span className="border-b-2 border-orange-400 text-orange-500 px-2">?</span>
-                </div>
-            </div>
+            );
+        };
 
-            <div className="grid gap-2">
-                {options.map((opt, i) => (
-                    <button 
-                        key={i} 
-                        onClick={() => handleAnswer(opt)}
-                        disabled={feedback !== null}
-                        className={`py-3 rounded-xl font-bold uppercase transition-all ${
-                            feedback && opt === analogy.answer ? 'bg-green-500 text-white' : 
-                            feedback && opt !== analogy.answer ? 'bg-gray-100 text-gray-300' :
-                            'bg-indigo-600 text-white active:scale-95'
-                        }`}
-                    >
-                        {opt}
-                    </button>
-                ))}
-            </div>
-            
-            {feedback && (
-                <div className={`mt-4 text-xs font-black uppercase ${feedback.correct ? 'text-green-500' : 'text-red-500'}`}>
-                    {feedback.correct ? '¡Excelente!' : '¡Sigue intentando!'}
-                </div>
-            )}
-        </div>
-    );
-};
         // --- 6. FLEXIBILIDAD 1: Conexión ---
         const FlexibilityGame = ({ onComplete }) => {
             const [nodes, setNodes] = useState([]);
-            const [sequence, setSequence] = useState([]);
             const [currentIndex, setCurrentIndex] = useState(0);
             const [connectedNodes, setConnectedNodes] = useState([]);
             const [lines, setLines] = useState([]);
@@ -314,7 +304,7 @@
                     y: Math.random() * 60 + 20,
                     id: `${item.type}-${item.value}`
                 }));
-                setNodes(generatedNodes); setSequence(seq); setCurrentIndex(0); setConnectedNodes([]); setLines([]); setScore(0); setErrors(0); setGameComplete(false); setFeedback(null);
+                setNodes(generatedNodes); setCurrentIndex(0); setConnectedNodes([]); setLines([]); setScore(0); setErrors(0); setGameComplete(false); setFeedback(null);
             };
 
             const drawLines = () => {
@@ -335,21 +325,17 @@
                     setConnectedNodes([...connectedNodes, node.id]);
                     if (currentIndex > 0) {
                         const prevNode = nodes[currentIndex - 1];
-                        const canvas = canvasRef.current;
-                        const rect = canvas.getBoundingClientRect();
-                        const newLine = {
+                        const rect = canvasRef.current.getBoundingClientRect();
+                        setLines([...lines, {
                             x1: (prevNode.x / 100) * rect.width, y1: (prevNode.y / 100) * rect.height,
                             x2: (node.x / 100) * rect.width, y2: (node.y / 100) * rect.height
-                        };
-                        setLines([...lines, newLine]);
+                        }]);
                     }
                     setCurrentIndex(currentIndex + 1);
-                    setFeedback({ correct: true, message: '¡Bien!' });
-                    if (currentIndex === sequence.length - 1) { finishGame(true); } 
-                    else { setTimeout(() => setFeedback(null), 400); }
+                    if (currentIndex === 9) finishGame(true);
                 } else {
                     setErrors(errors + 1);
-                    setFeedback({ correct: false, message: 'Orden: 1-A-2-B...' });
+                    setFeedback("Orden: 1-A-2-B...");
                     setTimeout(() => setFeedback(null), 1000);
                 }
             };
@@ -365,7 +351,6 @@
                     <div className="flex justify-between text-[10px] font-bold uppercase mb-2">
                         <span className="text-blue-600">⏱️ {timeLeft}s</span>
                         <span className="text-red-500">Errores: {errors}</span>
-                        <span className="text-purple-600">Siguiente: {sequence[currentIndex]?.label}</span>
                     </div>
                     <canvas ref={canvasRef} width={400} height={450} className="absolute top-0 left-0 w-full h-full pointer-events-none z-0" />
                     {nodes.map((node, i) => (
@@ -376,12 +361,11 @@
                             {node.label}
                         </button>
                     ))}
-                    {feedback && <div className={`absolute bottom-4 left-0 w-full text-center font-bold ${feedback.correct ? 'text-green-500' : 'text-red-500'}`}>{feedback.message}</div>}
+                    {feedback && <div className="absolute bottom-4 w-full text-center text-red-500 font-bold">{feedback}</div>}
                 </div>
             );
         };
 
-        // --- 6.2 FLEXIBILIDAD: Torres de Hanoi ---
         const Flexibility2Game = ({ onComplete }) => {
             const [towers, setTowers] = useState([[3, 2, 1], [], []]);
             const [selectedTower, setSelectedTower] = useState(null);
@@ -400,37 +384,23 @@
             useEffect(() => {
                 if (towers[2].length === 3) {
                     setGameComplete(true);
-                    const finalScore = Math.max(2000 - (moves * 50) - (timeElapsed * 10), 500);
-                    setTimeout(() => onComplete(finalScore), 1500);
+                    onComplete(Math.max(2000 - (moves * 50), 500));
                 }
             }, [towers]);
 
             const handleTowerClick = (idx) => {
                 if (!gameStarted) setGameStarted(true);
-                if (gameComplete) return;
                 if (selectedTower === null) {
                     if (towers[idx].length > 0) setSelectedTower(idx);
                 } else {
-                    if (selectedTower === idx) { setSelectedTower(null); } 
-                    else {
-                        const fromTower = towers[selectedTower];
-                        const toTower = towers[idx];
-                        const disk = fromTower[fromTower.length - 1];
-                        if (toTower.length === 0 || disk < toTower[toTower.length - 1]) {
-                            const newTowers = towers.map((t, i) => {
-                                if (i === selectedTower) return t.slice(0, -1);
-                                if (i === idx) return [...t, disk];
-                                return t;
-                            });
-                            setTowers(newTowers); setMoves(moves + 1);
-                        }
-                        setSelectedTower(null);
+                    const disk = towers[selectedTower][towers[selectedTower].length - 1];
+                    if (selectedTower !== idx && (towers[idx].length === 0 || disk < towers[idx][towers[idx].length - 1])) {
+                        const newTowers = towers.map((t, i) => i === selectedTower ? t.slice(0, -1) : i === idx ? [...t, disk] : t);
+                        setTowers(newTowers); setMoves(moves + 1);
                     }
+                    setSelectedTower(null);
                 }
             };
-
-            const getDiskColor = (s) => s === 1 ? 'bg-rose-500' : s === 2 ? 'bg-sky-500' : 'bg-emerald-500';
-            const getDiskWidth = (s) => s === 1 ? 'w-12' : s === 2 ? 'w-20' : 'w-28';
 
             return (
                 <div className="p-4 text-center">
@@ -438,18 +408,16 @@
                         <span>⏱️ {timeElapsed}s</span>
                         <span>Pasos: {moves}</span>
                     </div>
-                    <p className="text-[10px] font-bold text-gray-400 mb-4 uppercase text-center">Lleva la torre a la derecha</p>
-                    <div className="flex justify-around items-end h-56 bg-orange-50 rounded-2xl p-4 mb-6 relative">
+                    <div className="flex justify-around items-end h-56 bg-orange-50 rounded-2xl p-4">
                         {towers.map((tower, idx) => (
-                            <div key={idx} onClick={() => handleTowerClick(idx)} className={`relative w-1/3 h-full flex flex-col-reverse items-center pb-2 cursor-pointer rounded-xl transition-all ${selectedTower === idx ? 'bg-orange-100 ring-2 ring-orange-400' : ''}`}>
-                                <div className="absolute w-2 h-40 bg-gray-300 rounded-full bottom-4 z-0"></div>
+                            <div key={idx} onClick={() => handleTowerClick(idx)} className={`relative w-1/3 h-full flex flex-col-reverse items-center pb-2 cursor-pointer rounded-xl ${selectedTower === idx ? 'bg-orange-100 ring-2 ring-orange-400' : ''}`}>
+                                <div className="absolute w-2 h-40 bg-gray-300 rounded-full bottom-4"></div>
                                 <div className="flex flex-col-reverse gap-1 z-10">
-                                    {tower.map((disk, dIdx) => <div key={dIdx} className={`h-7 ${getDiskWidth(disk)} ${getDiskColor(disk)} rounded-lg shadow-md border-b-2 border-black/10`} />)}
+                                    {tower.map((disk, dIdx) => <div key={dIdx} className={`h-7 rounded-lg shadow-md ${disk === 1 ? 'w-12 bg-rose-500' : disk === 2 ? 'w-20 bg-sky-500' : 'w-28 bg-emerald-500'}`} />)}
                                 </div>
                             </div>
                         ))}
                     </div>
-                    {gameComplete && <div className="text-orange-600 font-black text-xl animate-pulse uppercase">¡Completado!</div>}
                 </div>
             );
         };
@@ -476,9 +444,9 @@
                     case 'g_lang2': return <Language2Game onComplete={finish} />;
                     case 'g_lang3': return <Language3Game onComplete={finish} />;
                     case 'g_logic': return <LogicGame onComplete={finish} />;
+                    case 'g_analogy': return <Reasoning2Game onComplete={finish} />;
                     case 'g_flex': return <FlexibilityGame onComplete={finish} />;
                     case 'g_hanoi': return <Flexibility2Game onComplete={finish} />;
-                    case 'g_analogy': return <Reasoning2Game onComplete={finish} />;    
                     default: return null;
                 }
             };
@@ -497,7 +465,7 @@
                                 <div onClick={() => setScreen('spd_sel')} className="game-btn bg-white p-4 rounded-2xl shadow border-b-4 border-blue-500 flex items-center"><span className="mr-4 text-2xl">⚡</span><p className="font-bold text-gray-700 uppercase">Velocidad</p></div>
                                 <div onClick={() => setScreen('att_sel')} className="game-btn bg-white p-4 rounded-2xl shadow border-b-4 border-orange-500 flex items-center"><span className="mr-4 text-2xl">👁️</span><p className="font-bold text-gray-700 uppercase">Atención</p></div>
                                 <div onClick={() => setScreen('len_sel')} className="game-btn bg-white p-4 rounded-2xl shadow border-b-4 border-teal-500 flex items-center"><span className="mr-4 text-2xl">📝</span><p className="font-bold text-gray-700 uppercase">Lenguaje</p></div>
-                                <div onClick={() => setScreen('log_sel')} className="game-btn bg-white p-4 rounded-2xl shadow border-b-4 border-indigo-500 flex items-center"><span className="mr-4 text-2xl">💡</span><p className="font-bold text-gray-700 uppercase">Lógica</p></div>                             
+                                <div onClick={() => setScreen('log_sel')} className="game-btn bg-white p-4 rounded-2xl shadow border-b-4 border-indigo-500 flex items-center"><span className="mr-4 text-2xl">💡</span><p className="font-bold text-gray-700 uppercase">Lógica</p></div>
                                 <div onClick={() => setScreen('flex_sel')} className="game-btn bg-white p-4 rounded-2xl shadow border-b-4 border-pink-500 flex items-center"><span className="mr-4 text-2xl">🔄</span><p className="font-bold text-gray-700 uppercase">Flexibilidad</p></div>
                             </div>
                         </div>
@@ -510,10 +478,9 @@
                                 {screen === 'mem_sel' && <React.Fragment><button onClick={() => setScreen('g_pairs')} className="bg-purple-100 text-purple-700 p-4 rounded-xl font-bold uppercase text-xs">Pares de Cartas</button><button onClick={() => setScreen('g_simon')} className="bg-pink-100 text-pink-700 p-4 rounded-xl font-bold uppercase text-xs">Simón Dice</button></React.Fragment>}
                                 {screen === 'spd_sel' && <React.Fragment><button onClick={() => setScreen('g_calc')} className="bg-blue-100 text-blue-700 p-4 rounded-xl font-bold uppercase text-xs">Cálculo Rápido</button><button onClick={() => setScreen('g_comp')} className="bg-cyan-100 text-cyan-700 p-4 rounded-xl font-bold uppercase text-xs">Comparación</button></React.Fragment>}
                                 {screen === 'att_sel' && <React.Fragment><button onClick={() => setScreen('g_att1')} className="bg-orange-100 text-orange-700 p-4 rounded-xl font-bold uppercase text-xs">Encuentra el diferente</button><button onClick={() => setScreen('g_att2')} className="bg-rose-100 text-rose-700 p-4 rounded-xl font-bold uppercase text-xs">Test Stroop</button></React.Fragment>}
-                                {screen === 'len_sel' && <React.Fragment><button onClick={() => setScreen('g_lang1')} className="bg-teal-100 text-teal-700 p-4 rounded-xl font-bold uppercase text-xs text-left">1. Forma la Palabra</button><button onClick={() => setScreen('g_lang2')} className="bg-emerald-100 text-emerald-700 p-4 rounded-xl font-bold uppercase text-xs text-left">2. Sinónimos Rápidos</button><button onClick={() => setScreen('g_lang3')} className="bg-green-100 text-green-700 p-4 rounded-xl font-bold uppercase text-xs text-left">3. Sopa de Letras</button></React.Fragment>}
+                                {screen === 'len_sel' && <React.Fragment><button onClick={() => setScreen('g_lang1')} className="bg-teal-100 text-teal-700 p-4 rounded-xl font-bold uppercase text-xs">1. Forma la Palabra</button><button onClick={() => setScreen('g_lang2')} className="bg-emerald-100 text-emerald-700 p-4 rounded-xl font-bold uppercase text-xs">2. Sinónimos Rápidos</button><button onClick={() => setScreen('g_lang3')} className="bg-green-100 text-green-700 p-4 rounded-xl font-bold uppercase text-xs">3. Sopa de Letras</button></React.Fragment>}
                                 {screen === 'flex_sel' && <React.Fragment><button onClick={() => setScreen('g_flex')} className="bg-pink-100 text-pink-700 p-4 rounded-xl font-bold uppercase text-xs">1. Conexión de Caminos</button><button onClick={() => setScreen('g_hanoi')} className="bg-orange-100 text-orange-700 p-4 rounded-xl font-bold uppercase text-xs">2. Torres de Hanoi</button></React.Fragment>}
-                                {screen === 'log_sel' && <React.Fragment><button onClick={() => setScreen('g_logic')} className="bg-indigo-100 text-indigo-700 p-4 rounded-xl font-bold uppercase text-xs">1. Series Numéricas</button><button onClick={() => setScreen('g_analogy')} className="bg-blue-100 text-blue-700 p-4 rounded-xl font-bold uppercase text-xs">2. Analogías Verbales</button>
-        <button onClick={() => setScreen('home')} className="mt-4 text-gray-400 text-[10px] font-bold uppercase">Volver</button></React.Fragment>)}
+                                {screen === 'log_sel' && <React.Fragment><button onClick={() => setScreen('g_logic')} className="bg-indigo-100 text-indigo-700 p-4 rounded-xl font-bold uppercase text-xs">1. Series Numéricas</button><button onClick={() => setScreen('g_analogy')} className="bg-blue-100 text-blue-700 p-4 rounded-xl font-bold uppercase text-xs">2. Analogías Verbales</button></React.Fragment>}
                                 <button onClick={() => setScreen('home')} className="mt-4 text-gray-400 text-[10px] font-bold uppercase">Volver</button>
                             </div>
                         </div>
