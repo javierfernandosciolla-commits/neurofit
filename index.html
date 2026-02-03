@@ -287,7 +287,112 @@
                 </div>
             );
         };
+// --- 6.2 FLEXIBILIDAD: Torres de Hanoi ---
+const Flexibility2Game = ({ onComplete }) => {
+    const [towers, setTowers] = useState([[3, 2, 1], [], []]);
+    const [selectedTower, setSelectedTower] = useState(null);
+    const [moves, setMoves] = useState(0);
+    const [timeElapsed, setTimeElapsed] = useState(0);
+    const [gameStarted, setGameStarted] = useState(false);
+    const [gameComplete, setGameComplete] = useState(false);
 
+    useEffect(() => {
+        if (gameStarted && !gameComplete) {
+            const timer = setInterval(() => setTimeElapsed(t => t + 1), 1000);
+            return () => clearInterval(timer);
+        }
+    }, [gameStarted, gameComplete]);
+
+    useEffect(() => {
+        // Condición de victoria: los 3 discos en la última torre
+        if (towers[2].length === 3) {
+            setGameComplete(true);
+            const finalScore = Math.max(2000 - (moves * 50) - (timeElapsed * 10), 500);
+            setTimeout(() => onComplete(finalScore), 1500);
+        }
+    }, [towers]);
+
+    const handleTowerClick = (towerIndex) => {
+        if (!gameStarted) setGameStarted(true);
+        if (gameComplete) return;
+
+        if (selectedTower === null) {
+            if (towers[towerIndex].length > 0) setSelectedTower(towerIndex);
+        } else {
+            if (selectedTower === towerIndex) {
+                setSelectedTower(null);
+            } else {
+                const fromTower = towers[selectedTower];
+                const toTower = towers[towerIndex];
+                const disk = fromTower[fromTower.length - 1];
+
+                // Regla clásica: disco pequeño sobre disco grande o torre vacía
+                if (toTower.length === 0 || disk < toTower[toTower.length - 1]) {
+                    const newTowers = towers.map((tower, i) => {
+                        if (i === selectedTower) return tower.slice(0, -1);
+                        if (i === towerIndex) return [...tower, disk];
+                        return tower;
+                    });
+                    setTowers(newTowers);
+                    setMoves(moves + 1);
+                }
+                setSelectedTower(null);
+            }
+        }
+    };
+
+    const getDiskColor = (size) => {
+        if (size === 1) return 'bg-rose-500';
+        if (size === 2) return 'bg-sky-500';
+        return 'bg-emerald-500';
+    };
+
+    const getDiskWidth = (size) => {
+        if (size === 1) return 'w-12';
+        if (size === 2) return 'w-20';
+        return 'w-28';
+    };
+
+    return (
+        <div className="p-4 text-center">
+            <div className="flex justify-between mb-4 font-bold text-orange-600 text-sm uppercase">
+                <span>⏱️ {timeElapsed}s</span>
+                <span>Pasos: {moves}</span>
+            </div>
+
+            <p className="text-[10px] font-bold text-gray-400 mb-4 uppercase">Mueve la torre completa a la derecha</p>
+
+            <div className="flex justify-around items-end h-56 bg-orange-50 rounded-2xl p-4 mb-6 relative">
+                {towers.map((tower, idx) => (
+                    <div 
+                        key={idx} 
+                        onClick={() => handleTowerClick(idx)}
+                        className={`relative w-1/3 h-full flex flex-col-reverse items-center pb-2 cursor-pointer rounded-xl transition-all ${selectedTower === idx ? 'bg-orange-100 ring-2 ring-orange-400' : ''}`}
+                    >
+                        {/* Poste vertical */}
+                        <div className="absolute w-2 h-40 bg-gray-300 rounded-full bottom-4 z-0"></div>
+                        
+                        {/* Discos */}
+                        <div className="flex flex-col-reverse gap-1 z-10">
+                            {tower.map((disk, dIdx) => (
+                                <div 
+                                    key={dIdx} 
+                                    className={`h-7 ${getDiskWidth(disk)} ${getDiskColor(disk)} rounded-lg shadow-md border-b-2 border-black/10`}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {gameComplete && (
+                <div className="text-orange-600 font-black text-xl animate-pulse">
+                    ¡ESTRATEGIA PERFECTA! 🏆
+                </div>
+            )}
+        </div>
+    );
+};
         // --- APP PRINCIPAL ---
         const App = () => {
             const [screen, setScreen] = useState('home');
@@ -311,6 +416,7 @@
                     case 'g_lang3': return <Language3Game onComplete={finish} />;
                     case 'g_logic': return <LogicGame onComplete={finish} />;
                     case 'g_flex': return <FlexibilityGame onComplete={finish} />;
+                    case 'g_hanoi': return <Flexibility2Game onComplete={finish} />;
                     default: return null;
                 }
             };
@@ -343,7 +449,12 @@
                                 {screen === 'spd_sel' && <React.Fragment><button onClick={() => setScreen('g_calc')} className="bg-blue-100 text-blue-700 p-4 rounded-xl font-bold uppercase text-xs">Cálculo Rápido</button><button onClick={() => setScreen('g_comp')} className="bg-cyan-100 text-cyan-700 p-4 rounded-xl font-bold uppercase text-xs">Comparación</button></React.Fragment>}
                                 {screen === 'att_sel' && <React.Fragment><button onClick={() => setScreen('g_att1')} className="bg-orange-100 text-orange-700 p-4 rounded-xl font-bold uppercase text-xs">Encuentra el diferente</button><button onClick={() => setScreen('g_att2')} className="bg-rose-100 text-rose-700 p-4 rounded-xl font-bold uppercase text-xs">Test Stroop</button></React.Fragment>}
                                 {screen === 'len_sel' && <React.Fragment><button onClick={() => setScreen('g_lang1')} className="bg-teal-100 text-teal-700 p-4 rounded-xl font-bold uppercase text-xs text-left">1. Forma la Palabra</button><button onClick={() => setScreen('g_lang2')} className="bg-emerald-100 text-emerald-700 p-4 rounded-xl font-bold uppercase text-xs text-left">2. Sinónimos Rápidos</button><button onClick={() => setScreen('g_lang3')} className="bg-green-100 text-green-700 p-4 rounded-xl font-bold uppercase text-xs text-left">3. Sopa de Letras</button></React.Fragment>}
-                                <button onClick={() => setScreen('home')} className="mt-2 text-gray-400 text-[10px] font-bold uppercase">Volver</button>
+                                <button onClick={() => setScreen('home')} className="mt-2 text-gray-400 text-[10px] font-bold uppercase"{screen === 'flex_sel' && (
+    <React.Fragment>
+        <button onClick={() => setScreen('g_flex')} className="bg-pink-100 text-pink-700 p-4 rounded-xl font-bold uppercase text-xs">1. Conexión de Caminos</button>
+        <button onClick={() => setScreen('g_hanoi')} className="bg-orange-100 text-orange-700 p-4 rounded-xl font-bold uppercase text-xs">2. Torres de Hanoi</button>
+    </React.Fragment>
+)}>Volver</button>
                             </div>
                         </div>
                     )}
